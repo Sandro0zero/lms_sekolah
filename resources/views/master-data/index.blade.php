@@ -40,6 +40,23 @@
             <a href="{{ route('master-data.section', $key) }}" @class(['shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition', $section === $key ? 'bg-indigo-600 text-white' : 'border border-slate-200 bg-white text-slate-600 hover:border-indigo-300 hover:text-indigo-700']) @if($section === $key) aria-current="page" @endif>{{ $label }}</a>
         @endforeach
     </nav>
+    <form method="GET" action="{{ request()->url() }}" role="search" class="flex flex-wrap items-end gap-2 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+        <div class="min-w-56 flex-1">
+            <label for="master_search" class="mb-1 block text-xs font-semibold text-slate-600">Cari {{ strtolower($sectionLabels[$section]) }}</label>
+            <input id="master_search" name="q" type="search" value="{{ $search }}" maxlength="100" placeholder="Masukkan nama atau nomor terkait…" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none transition placeholder:text-slate-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100">
+        </div>
+        @if($section === 'siswa')
+            <div>
+                <label for="entry_year" class="mb-1 block text-xs font-semibold text-slate-600">Tahun masuk</label>
+                <select id="entry_year" name="entry_year" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
+                    <option value="">Semua tahun</option>
+                    @foreach($registrationYears as $year)<option value="{{ $year }}" @selected($entryYear === (int) $year)>{{ $year }}</option>@endforeach
+                </select>
+            </div>
+        @endif
+        <button class="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700">Cari</button>
+        @if($search !== '' || $entryYear)<a href="{{ route('master-data.section', $section) }}" class="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">Hapus filter</a>@endif
+    </form>
     @can('master.manage')
         <div class="mb-5 flex items-center justify-between gap-4 rounded-xl border border-indigo-100 bg-indigo-50/70 px-4 py-3">
             <div><p class="text-sm font-semibold text-indigo-950">Tambah {{ strtolower($sectionLabels[$section]) }}</p><p class="mt-0.5 text-xs text-indigo-800/80">Isi formulir berikut untuk membuat data baru.</p></div>
@@ -113,7 +130,7 @@
                         <input id="student_name" name="name" value="{{ old('name') }}" required class="w-full rounded-lg border px-3 py-2 text-sm">
                         @error('name')<p class="mt-1 text-sm text-red-700">{{ $message }}</p>@enderror
                     </div>
-                    <div class="grid grid-cols-2 gap-3">
+                    <div class="grid gap-3 sm:grid-cols-3">
                         <div>
                             <label for="gender" class="mb-1 block text-sm font-medium">Jenis kelamin</label>
                             <select id="gender" name="gender" required class="w-full rounded-lg border bg-white px-3 py-2 text-sm">
@@ -125,6 +142,11 @@
                             <label for="birth_date" class="mb-1 block text-sm font-medium">Tanggal lahir</label>
                             <input id="birth_date" name="birth_date" type="date" value="{{ old('birth_date') }}" class="w-full rounded-lg border px-3 py-2 text-sm">
                             @error('birth_date')<p class="mt-1 text-sm text-red-700">{{ $message }}</p>@enderror
+                        </div>
+                        <div>
+                            <label for="student_registration_date" class="mb-1 block text-sm font-medium">Tanggal terdaftar</label>
+                            <input id="student_registration_date" name="registration_date" type="date" max="{{ now()->toDateString() }}" value="{{ old('registration_date', now()->toDateString()) }}" required class="w-full rounded-lg border px-3 py-2 text-sm">
+                            @error('registration_date')<p class="mt-1 text-sm text-red-700">{{ $message }}</p>@enderror
                         </div>
                     </div>
                     <div>
@@ -331,7 +353,7 @@
                     @endcan
                 </div>
             @empty
-                <p class="px-5 py-6 text-sm text-slate-500">Belum ada kelas.</p>
+                <p class="px-5 py-6 text-sm text-slate-500">{{ $search !== '' ? 'Tidak ada kelas yang cocok dengan pencarian.' : 'Belum ada kelas.' }}</p>
             @endforelse
         </div>
     </section>
@@ -339,13 +361,13 @@
 
     @if($section === 'siswa')
     <section class="overflow-hidden rounded-xl border bg-white">
-        <h2 class="border-b px-5 py-4 font-semibold">Siswa <span class="text-sm font-normal text-slate-500">({{ $students->total() }})</span></h2>
+        <div class="border-b px-5 py-4"><h2 class="font-semibold">Siswa <span class="text-sm font-normal text-slate-500">({{ $students->total() }})</span></h2><p class="mt-1 text-xs text-slate-500">Urut dari tahun dan tanggal terdaftar terbaru.</p></div>
         <div class="divide-y">
             @forelse($students as $student)
                 @php($enrollment = $student->enrollments->sortByDesc('academic_year')->first())
                 <div class="px-5 py-3 text-sm">
                     <p class="font-medium">{{ $student->name }}</p>
-                    <p class="mt-1 text-xs text-slate-500">NIS {{ $student->nis }} · {{ $enrollment?->schoolClass?->name ? 'Kelas '.$enrollment->schoolClass->name : 'Belum memiliki kelas' }} · {{ ucfirst($student->status) }}</p>
+                    <p class="mt-1 text-xs text-slate-500">NIS {{ $student->nis }} · {{ $enrollment?->schoolClass?->name ? 'Kelas '.$enrollment->schoolClass->name : 'Belum memiliki kelas' }} · Terdaftar {{ $student->registration_date?->format('d/m/Y') ?? '—' }} · {{ ucfirst($student->status) }}</p>
                     @can('master.manage')
                         <details class="mt-2"><summary class="cursor-pointer text-xs font-medium text-indigo-700">Ubah data siswa</summary>
                             <form method="POST" action="{{ route('master-data.students.update', $student) }}" class="mt-2 space-y-2">
@@ -362,6 +384,9 @@
                                     </select>
                                 </div>
                                 <input name="birth_date" type="date" value="{{ $student->birth_date?->format('Y-m-d') }}" class="w-full rounded border px-2 py-1 text-xs" aria-label="Tanggal lahir">
+                                <label class="block text-xs font-medium text-slate-600">Tanggal terdaftar
+                                    <input name="registration_date" type="date" max="{{ now()->toDateString() }}" value="{{ $student->registration_date?->format('Y-m-d') }}" required class="mt-1 w-full rounded border px-2 py-1 text-xs" aria-label="Tanggal terdaftar siswa">
+                                </label>
                                 <select name="class_id" class="w-full rounded border bg-white px-2 py-1 text-xs" aria-label="Kelas siswa">
                                     <option value="" @selected(! $enrollment)>Pertahankan penempatan saat ini</option>
                                     @foreach($classes as $class)<option value="{{ $class->id }}" @selected($enrollment?->class_id === $class->id)>Kelas {{ $class->name }} · {{ $class->academic_year }}</option>@endforeach
@@ -386,7 +411,7 @@
                     @endcan
                 </div>
             @empty
-                <p class="px-5 py-6 text-sm text-slate-500">Belum ada siswa.</p>
+                <p class="px-5 py-6 text-sm text-slate-500">{{ $search !== '' ? 'Tidak ada siswa yang cocok dengan pencarian.' : 'Belum ada siswa.' }}</p>
             @endforelse
         </div>
         @if($students->hasPages())<div class="border-t px-5 py-3">{{ $students->links() }}</div>@endif
@@ -415,7 +440,7 @@
                     @endcan
                 </div>
             @empty
-                <p class="px-5 py-6 text-sm text-slate-500">Belum ada mata pelajaran.</p>
+                <p class="px-5 py-6 text-sm text-slate-500">{{ $search !== '' ? 'Tidak ada mata pelajaran yang cocok dengan pencarian.' : 'Belum ada mata pelajaran.' }}</p>
             @endforelse
         </div>
     </section>
@@ -468,7 +493,7 @@
                     @endcan
                 </div>
             @empty
-                <p class="px-5 py-6 text-sm text-slate-500">Belum ada guru.</p>
+                <p class="px-5 py-6 text-sm text-slate-500">{{ $search !== '' ? 'Tidak ada guru yang cocok dengan pencarian.' : 'Belum ada guru.' }}</p>
             @endforelse
         </div>
     </section>
@@ -482,7 +507,7 @@
                     @forelse($assignments as $assignment)
                         <tr class="border-t"><td class="px-5 py-3 font-medium">{{ $assignment->teacher->name }}</td><td class="px-5 py-3">{{ $assignment->subject->name }}</td><td class="px-5 py-3">{{ $assignment->schoolClass->name }}</td>@can('master.manage')<td class="px-5 py-3"><form method="POST" action="{{ route('master-data.assignments.destroy', $assignment) }}" onsubmit="return confirm('Hapus penugasan ini? Nilai dan absensi yang sudah tercatat tetap tersimpan.')">@csrf @method('DELETE')<button class="text-xs font-medium text-red-700 hover:underline">Hapus penugasan</button></form></td>@endcan</tr>
                     @empty
-                        <tr><td colspan="{{ auth()->user()->can('master.manage') ? 4 : 3 }}" class="px-5 py-10 text-center text-slate-500">Belum ada penugasan untuk semester aktif.</td></tr>
+                        <tr><td colspan="{{ auth()->user()->can('master.manage') ? 4 : 3 }}" class="px-5 py-10 text-center text-slate-500">{{ $search !== '' ? 'Tidak ada penugasan yang cocok dengan pencarian.' : 'Belum ada penugasan untuk semester aktif.' }}</td></tr>
                     @endforelse
                 </tbody>
             </table>
@@ -536,7 +561,7 @@
                     @endcan
                 </div>
             @empty
-                <p class="px-5 py-6 text-sm text-slate-500">Belum ada akun orang tua/wali.</p>
+                <p class="px-5 py-6 text-sm text-slate-500">{{ $search !== '' ? 'Tidak ada orang tua/wali yang cocok dengan pencarian.' : 'Belum ada akun orang tua/wali.' }}</p>
             @endforelse
         </div>
     </section>

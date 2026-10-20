@@ -54,11 +54,23 @@
             <span class="rounded-full bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700">{{ $students->count() }} siswa aktif</span>
         </div>
 
+        <form method="GET" action="{{ route('class-roster.index') }}" role="search" class="flex flex-wrap items-end gap-2 border-b bg-slate-50/70 px-5 py-3">
+            <input type="hidden" name="teacher_id" value="{{ $selectedTeacher->id }}">
+            <input type="hidden" name="class_id" value="{{ $selectedClass->id }}">
+            <div class="min-w-56 flex-1">
+                <label for="roster_search" class="mb-1 block text-xs font-semibold text-slate-600">Cari siswa untuk ditempatkan</label>
+                <input id="roster_search" name="q" type="search" value="{{ $search }}" maxlength="100" placeholder="Nama, NIS, atau NISN" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100">
+            </div>
+            <button class="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700">Cari siswa</button>
+            @if($search !== '')<a href="{{ route('class-roster.index', ['teacher_id' => $selectedTeacher->id, 'class_id' => $selectedClass->id]) }}" class="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">Hapus pencarian</a>@endif
+        </form>
+
         @can('master.manage')
             <form method="POST" action="{{ route('class-roster.store') }}">
                 @csrf
                 <input type="hidden" name="teacher_id" value="{{ $selectedTeacher->id }}">
                 <input type="hidden" name="class_id" value="{{ $selectedClass->id }}">
+                <input type="hidden" name="q" value="{{ $search }}">
                 <div class="max-h-[32rem] divide-y overflow-y-auto">
                     @forelse($students as $student)
                         @php($currentEnrollment = $student->enrollments->first())
@@ -66,14 +78,14 @@
                             <input type="checkbox" name="student_ids[]" value="{{ $student->id }}" @checked($currentEnrollment?->class_id === $selectedClass->id)>
                             <span class="min-w-0 flex-1">
                                 <span class="block font-medium">{{ $student->name }}</span>
-                                <span class="block text-xs text-slate-500">NIS {{ $student->nis }} · {{ $currentEnrollment?->schoolClass?->name ? 'Kelas saat ini '.$currentEnrollment->schoolClass->name : 'Belum ditempatkan pada tahun ajaran ini' }}</span>
+                                <span class="block text-xs text-slate-500">NIS {{ $student->nis }} · Terdaftar {{ $student->registration_date?->format('d/m/Y') ?? '—' }} · {{ $currentEnrollment?->schoolClass?->name ? 'Kelas saat ini '.$currentEnrollment->schoolClass->name : 'Belum ditempatkan pada tahun ajaran ini' }}</span>
                             </span>
                             @if($currentEnrollment?->class_id === $selectedClass->id)
                                 <span class="text-xs text-green-700">Sudah di kelas ini</span>
                             @endif
                         </label>
                     @empty
-                        <p class="px-5 py-8 text-center text-sm text-slate-500">Belum ada siswa aktif yang bisa ditempatkan.</p>
+                        <p class="px-5 py-8 text-center text-sm text-slate-500">{{ $search !== '' ? 'Tidak ada siswa aktif yang cocok dengan pencarian.' : 'Belum ada siswa aktif yang bisa ditempatkan.' }}</p>
                     @endforelse
                 </div>
                 @error('student_ids')<p class="px-5 pt-3 text-sm text-red-700">{{ $message }}</p>@enderror

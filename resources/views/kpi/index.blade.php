@@ -19,13 +19,22 @@
         <p class="text-sm text-slate-500">Semester {{ $semester->label() }}</p>
     </div>
 
-    <form method="GET" action="{{ route('kpi.index') }}">
-        <select name="class" onchange="this.form.submit()" class="rounded border bg-white px-3 py-2 text-sm">
-            <option value="">Semua kelas</option>
-            @foreach($classes as $c)
-                <option value="{{ $c->id }}" @selected($classId === $c->id)>Kelas {{ $c->name }}</option>
-            @endforeach
-        </select>
+    <form method="GET" action="{{ route('kpi.index') }}" class="flex flex-wrap items-end gap-2 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
+        <div>
+            <label for="kpi_class" class="mb-1 block text-xs font-semibold text-slate-600">Kelas</label>
+            <select id="kpi_class" name="class" class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
+                <option value="">Semua kelas</option>
+                @foreach($classes as $c)
+                    <option value="{{ $c->id }}" @selected($classId === $c->id)>Kelas {{ $c->name }}</option>
+                @endforeach
+            </select>
+        </div>
+        <div class="min-w-48 flex-1">
+            <label for="kpi_search" class="mb-1 block text-xs font-semibold text-slate-600">Cari siswa</label>
+            <input id="kpi_search" name="q" type="search" value="{{ $search }}" maxlength="100" placeholder="Nama, NIS, atau NISN" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100">
+        </div>
+        <button class="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700">Terapkan</button>
+        @if($classId || $search !== '')<a href="{{ route('kpi.index') }}" class="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">Hapus filter</a>@endif
     </form>
 </div>
 
@@ -40,6 +49,7 @@
     <form method="POST" action="{{ route('kpi.hitung') }}">
         @csrf
         <input type="hidden" name="class" value="{{ $classId }}">
+        <input type="hidden" name="q" value="{{ $search }}">
         <button type="submit" class="rounded-lg bg-indigo-600 px-4 py-2 text-sm text-white hover:bg-indigo-700">Hitung ulang KPI</button>
     </form>
 
@@ -47,6 +57,7 @@
           onsubmit="return confirm('Publikasikan semua KPI yang sudah lengkap{{ $classId ? ' pada kelas ini' : '' }}? Orang tua dan siswa akan dapat melihatnya.')">
         @csrf
         <input type="hidden" name="class" value="{{ $classId }}">
+        <input type="hidden" name="q" value="{{ $search }}">
         <button type="submit" class="rounded-lg border border-green-600 px-4 py-2 text-sm text-green-700 hover:bg-green-50">Publikasikan yang lengkap</button>
     </form>
 </div>
@@ -91,7 +102,7 @@
                     </td>
                 </tr>
             @empty
-                <tr><td colspan="8" class="px-4 py-6 text-center text-slate-500">Belum ada KPI. Klik "Hitung ulang KPI".</td></tr>
+                <tr><td colspan="8" class="px-4 py-6 text-center text-slate-500">{{ $search !== '' || $classId ? 'Tidak ada KPI yang cocok dengan filter.' : 'Belum ada KPI. Klik "Hitung ulang KPI".' }}</td></tr>
             @endforelse
         </tbody>
     </table>

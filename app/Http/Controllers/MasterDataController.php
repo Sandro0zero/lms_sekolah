@@ -21,7 +21,7 @@ use Illuminate\View\View;
 
 class MasterDataController extends Controller
 {
-    public function index(?string $section = null): View
+    public function index(Request $request, ?string $section = null): View
     {
         $sectionLabels = [
             'kelas' => 'Data Kelas',
@@ -32,23 +32,56 @@ class MasterDataController extends Controller
             'penugasan' => 'Penugasan Guru',
         ];
         abort_if($section !== null && ! array_key_exists($section, $sectionLabels), 404);
+        $filters = $request->validate([
+            'q' => ['nullable', 'string', 'max:100'],
+            'entry_year' => ['nullable', 'integer', 'between:1900,'.now()->year],
+        ]);
+        $search = trim($filters['q'] ?? '');
+        $entryYear = $filters['entry_year'] ?? null;
         $semester = Semester::active();
 
         return view('master-data.index', [
             'section' => $section,
             'sectionLabels' => $sectionLabels,
+            'search' => $search,
+            'entryYear' => $entryYear ? (int) $entryYear : null,
             'semester' => $semester,
             'academicYears' => Semester::query()->select('academic_year')->distinct()->orderByDesc('academic_year')->pluck('academic_year'),
-            'classes' => SchoolClass::with('homeroomTeacher')->withCount(['enrollments', 'assignments'])->orderByDesc('academic_year')->orderBy('name')->get(),
-            'students' => Student::with(['user', 'enrollments.schoolClass'])->orderBy('name')->paginate(50),
+            'classes' => SchoolClass::with('homeroomTeacher')->withCount(['enrollments', 'assignments'])
+                ->when($search !== '' && $section === 'kelas', fn ($query) => $query->where(fn ($classQuery) => $classQuery
+                    ->where('name', 'like', "%{$search}%")->orWhere('academic_year', 'like', "%{$search}%")))
+                ->orderByDesc('academic_year')->orderBy('name')->get(),
+            'students' => Student::with(['user', 'enrollments.schoolClass'])
+                ->when($search !== '' && $section === 'siswa', fn ($query) => $query->where(fn ($studentQuery) => $studentQuery
+                    ->where('name', 'like', "%{$search}%")->orWhere('nis', 'like', "%{$search}%")->orWhere('nisn', 'like', "%{$search}%")))
+                ->when($entryYear && $section === 'siswa', fn ($query) => $query->whereYear('registration_date', $entryYear))
+                ->orderByDesc('registration_date')->orderBy('name')->paginate(50)->withQueryString(),
+            'registrationYears' => Student::query()->whereNotNull('registration_date')
+                ->selectRaw('YEAR(registration_date) as registration_year')->distinct()
+                ->orderByDesc('registration_year')->pluck('registration_year'),
             'allStudents' => Student::orderBy('name')->get(['id', 'nis', 'name', 'status']),
-            'subjects' => Subject::orderBy('name')->get(),
+            'subjects' => Subject::when($search !== '' && $section === 'mapel', fn ($query) => $query->where(fn ($subjectQuery) => $subjectQuery
+                    ->where('name', 'like', "%{$search}%")->orWhere('code', 'like', "%{$search}%")))
+                ->orderBy('name')->get(),
             'teachers' => Teacher::where('is_active', true)->orderBy('name')->get(),
             'teacherProfiles' => Teacher::with(['user', 'assignments' => fn ($query) => $query->with(['schoolClass', 'subject'])->where('semester_id', $semester?->id)])
+                ->when($search !== '' && $section === 'guru', fn ($query) => $query->where(fn ($teacherQuery) => $teacherQuery
+                    ->where('name', 'like', "%{$search}%")->orWhere('nip', 'like', "%{$search}%")
+                    ->orWhereHas('user', fn ($userQuery) => $userQuery->where('username', 'like', "%{$search}%"))))
                 ->orderBy('name')->get(),
-            'guardians' => Guardian::with(['user', 'students'])->orderBy('name')->get(),
+            'guardians' => Guardian::with(['user', 'students'])
+                ->when($search !== '' && $section === 'orang-tua', fn ($query) => $query->where(fn ($guardianQuery) => $guardianQuery
+                    ->where('name', 'like', "%{$search}%")
+                    ->orWhereHas('user', fn ($userQuery) => $userQuery->where('username', 'like', "%{$search}%"))
+                    ->orWhereHas('students', fn ($studentQuery) => $studentQuery->where('name', 'like', "%{$search}%")->orWhere('nis', 'like', "%{$search}%"))))
+                ->orderBy('name')->get(),
             'assignments' => $semester
-                ? TeachingAssignment::with(['teacher', 'schoolClass', 'subject'])->where('semester_id', $semester->id)->orderBy('class_id')->get()
+                ? TeachingAssignment::with(['teacher', 'schoolClass', 'subject'])->where('semester_id', $semester->id)
+                    ->when($search !== '' && $section === 'penugasan', fn ($query) => $query->where(fn ($searchQuery) => $searchQuery
+                        ->whereHas('teacher', fn ($teacherQuery) => $teacherQuery->where('name', 'like', "%{$search}%"))
+                        ->orWhereHas('schoolClass', fn ($classQuery) => $classQuery->where('name', 'like', "%{$search}%"))
+                        ->orWhereHas('subject', fn ($subjectQuery) => $subjectQuery->where('name', 'like', "%{$search}%"))))
+                    ->orderBy('class_id')->get()
                 : collect(),
         ]);
     }
@@ -106,6 +139,7 @@ class MasterDataController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'gender' => ['required', Rule::in(['L', 'P'])],
             'birth_date' => ['nullable', 'date', 'before_or_equal:today'],
+            'registration_date' => ['required', 'date', 'before_or_equal:today'],
             'class_id' => ['nullable', 'integer', 'exists:school_classes,id'],
             'username' => ['nullable', 'required_with:password', 'string', 'max:255', 'unique:users,username'],
             'email' => ['nullable', 'email', 'max:255', 'unique:users,email'],
@@ -138,7 +172,7 @@ class MasterDataController extends Controller
                 $accountSummary = ['username' => $user->username, 'email' => $user->email];
             }
             $audit->log('student.created', $student, null, [
-                ...$student->only(['nis', 'nisn', 'name', 'gender', 'birth_date', 'status']),
+                ...$student->only(['nis', 'nisn', 'name', 'gender', 'birth_date', 'registration_date', 'status']),
                 'class_id' => $class?->id, 'account' => $accountSummary,
             ]);
 
@@ -158,6 +192,7 @@ class MasterDataController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'gender' => ['required', Rule::in(['L', 'P'])],
             'birth_date' => ['nullable', 'date', 'before_or_equal:today'],
+            'registration_date' => ['required', 'date', 'before_or_equal:today'],
             'status' => ['required', Rule::in(['aktif', 'lulus', 'pindah', 'keluar'])],
             'class_id' => ['nullable', 'integer', 'exists:school_classes,id'],
             'username' => ['nullable', 'string', 'max:255', Rule::unique('users', 'username')->ignore($student->user_id)],
@@ -173,7 +208,7 @@ class MasterDataController extends Controller
             : null;
 
         DB::transaction(function () use ($student, $data, $class, $enrollment, $activeEnrollment, $audit): void {
-            $old = $student->only(['nis', 'nisn', 'name', 'gender', 'birth_date', 'status']);
+            $old = $student->only(['nis', 'nisn', 'name', 'gender', 'birth_date', 'registration_date', 'status']);
             $old['class_id'] = $enrollment?->class_id ?? $activeEnrollment?->class_id;
             $user = $student->user;
             $old['account'] = $user ? ['username' => $user->username, 'email' => $user->email, 'is_active' => $user->is_active] : null;
@@ -209,7 +244,7 @@ class MasterDataController extends Controller
                     $user->update($userData);
                 }
             }
-            $new = $student->only(['nis', 'nisn', 'name', 'gender', 'birth_date', 'status']);
+            $new = $student->only(['nis', 'nisn', 'name', 'gender', 'birth_date', 'registration_date', 'status']);
             $new['class_id'] = $class?->id ?? $activeEnrollment?->class_id;
             $new['account'] = $user ? ['username' => $user->username, 'email' => $user->email, 'is_active' => $user->is_active] : null;
             $audit->log('student.updated', $student, $old, $new);
@@ -221,7 +256,7 @@ class MasterDataController extends Controller
     public function destroyStudent(Student $student, AuditLogger $audit): RedirectResponse
     {
         DB::transaction(function () use ($student, $audit): void {
-            $old = $student->only(['nis', 'nisn', 'name', 'gender', 'status']);
+            $old = $student->only(['nis', 'nisn', 'name', 'gender', 'registration_date', 'status']);
             $student->update(['status' => 'keluar']);
             if ($student->user) {
                 $student->user->update(['is_active' => false]);

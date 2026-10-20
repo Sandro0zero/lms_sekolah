@@ -36,10 +36,15 @@ class KpiController extends Controller
 
         $classes = SchoolClass::where('academic_year', $semester->academic_year)->orderBy('name')->get();
         $classId = $this->validatedClassId($request, $semester);
+        $search = $this->validatedSearch($request);
 
         $kpis = StudentKpi::with(['student', 'schoolClass'])
             ->where('semester_id', $semester->id)
             ->when($classId, fn ($q) => $q->where('class_id', $classId))
+            ->when($search !== '', fn ($q) => $q->whereHas('student', fn ($studentQuery) => $studentQuery
+                ->where('name', 'like', "%{$search}%")
+                ->orWhere('nis', 'like', "%{$search}%")
+                ->orWhere('nisn', 'like', "%{$search}%")))
             ->get()
             ->sortBy(fn ($k) => $k->schoolClass->name . '|' . $k->student->name);
 
@@ -50,7 +55,7 @@ class KpiController extends Controller
             'published' => $kpis->where('status', 'published')->count(),
         ];
 
-        return view('kpi.index', compact('semester', 'classes', 'classId', 'kpis', 'stats'));
+        return view('kpi.index', compact('semester', 'classes', 'classId', 'search', 'kpis', 'stats'));
     }
 
     public function hitung(Request $request, KpiBatchService $batch)
@@ -58,11 +63,12 @@ class KpiController extends Controller
         $this->authorizeStaff();
         $semester = $this->semester();
         $classId = $this->validatedClassId($request, $semester);
+        $search = $this->validatedSearch($request);
         $class = $classId ? SchoolClass::findOrFail($classId) : null;
 
         $result = $batch->calculate($semester, $class);
 
-        return redirect()->route('kpi.index', ['class' => $classId])
+        return redirect()->route('kpi.index', array_filter(['class' => $classId, 'q' => $search], fn ($value) => $value !== null && $value !== ''))
             ->with('status', "KPI dihitung untuk {$result['total']} siswa ({$result['incomplete']} belum lengkap).");
     }
 
@@ -71,11 +77,12 @@ class KpiController extends Controller
         $this->authorizeStaff();
         $semester = $this->semester();
         $classId = $this->validatedClassId($request, $semester);
+        $search = $this->validatedSearch($request);
         $class = $classId ? SchoolClass::findOrFail($classId) : null;
 
         $result = $calculator->publish($semester, $request->user(), $class);
 
-        return redirect()->route('kpi.index', ['class' => $classId])
+        return redirect()->route('kpi.index', array_filter(['class' => $classId, 'q' => $search], fn ($value) => $value !== null && $value !== ''))
             ->with('status', "{$result['published']} KPI dipublikasikan, {$result['skipped']} dilewati karena belum lengkap.");
     }
 
@@ -90,5 +97,10 @@ class KpiController extends Controller
         ]);
 
         return isset($validated['class']) ? (int) $validated['class'] : null;
+    }
+
+    private function validatedSearch(Request $request): string
+    {
+        return trim($request->validate(['q' => ['nullable', 'string', 'max:100']])['q'] ?? '');
     }
 }

@@ -33,6 +33,7 @@ class ClassRosterController extends Controller
         $classes = $selectedTeacher?->homeroomClasses ?? collect();
         $selectedClassId = $request->integer('class_id') ?: null;
         $selectedClass = $classes->firstWhere('id', $selectedClassId);
+        $search = trim($request->validate(['q' => ['nullable', 'string', 'max:100']])['q'] ?? '');
 
         if (! $selectedClass && $classes->count() === 1) {
             $selectedClass = $classes->first();
@@ -42,12 +43,16 @@ class ClassRosterController extends Controller
         $students = $selectedClass
             ? Student::query()->where('status', 'aktif')
                 ->with(['enrollments' => fn ($query) => $query->where('academic_year', $semester->academic_year)->with('schoolClass')])
-                ->orderBy('name')->get()
+                ->when($search !== '', fn ($query) => $query->where(fn ($studentQuery) => $studentQuery
+                    ->where('name', 'like', "%{$search}%")
+                    ->orWhere('nis', 'like', "%{$search}%")
+                    ->orWhere('nisn', 'like', "%{$search}%")))
+                ->orderByDesc('registration_date')->orderBy('name')->get()
             : collect();
 
         return view('class-roster.index', compact(
             'semester', 'teachers', 'selectedTeacher', 'selectedTeacherId', 'classes',
-            'selectedClass', 'selectedClassId', 'students'
+            'selectedClass', 'selectedClassId', 'students', 'search'
         ));
     }
 
@@ -67,6 +72,7 @@ class ClassRosterController extends Controller
             'student_ids.*' => ['required', 'integer', 'distinct', Rule::exists('students', 'id')
                 ->where('status', 'aktif')->whereNull('deleted_at')],
         ]);
+        $data += $request->validate(['q' => ['nullable', 'string', 'max:100']]);
 
         $class = SchoolClass::findOrFail($data['class_id']);
         $moved = 0;
@@ -93,8 +99,14 @@ class ClassRosterController extends Controller
             }
         });
 
-        return redirect()->route('class-roster.index', [
+        $query = [
             'teacher_id' => $data['teacher_id'], 'class_id' => $class->id,
-        ])->with('status', "{$moved} siswa ditambahkan/dipindahkan ke kelas {$class->name}; {$unchanged} siswa sudah berada di kelas tersebut.");
+        ];
+        if (filled($data['q'] ?? null)) {
+            $query['q'] = $data['q'];
+        }
+
+        return redirect()->route('class-roster.index', $query)
+            ->with('status', "{$moved} siswa ditambahkan/dipindahkan ke kelas {$class->name}; {$unchanged} siswa sudah berada di kelas tersebut.");
     }
 }

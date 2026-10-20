@@ -19,7 +19,7 @@ class Student extends Model
 
     protected function casts(): array
     {
-        return ['birth_date' => 'date'];
+        return ['birth_date' => 'date', 'registration_date' => 'date'];
     }
 
     public function user(): BelongsTo { return $this->belongsTo(User::class); }
