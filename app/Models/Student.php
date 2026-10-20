@@ -24,7 +24,7 @@ class Student extends Model
 
     public function user(): BelongsTo { return $this->belongsTo(User::class); }
     public function enrollments(): HasMany { return $this->hasMany(Enrollment::class); }
-    public function guardians(): BelongsToMany { return $this->belongsToMany(Guardian::class, 'guardian_student'); }
+    public function guardians(): BelongsToMany { return $this->belongsToMany(Guardian::class, 'guardian_student')->withPivot('relationship')->withTimestamps(); }
     public function grades(): HasMany { return $this->hasMany(Grade::class); }
     public function attendances(): HasMany { return $this->hasMany(StudentAttendance::class); }
     public function kpis(): HasMany { return $this->hasMany(StudentKpi::class); }

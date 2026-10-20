@@ -7,21 +7,21 @@
     <div class="mb-6 text-center">
         <p class="text-sm font-medium text-indigo-700">LMS Sekolah</p>
         <h1 class="mt-2 text-2xl font-semibold">Masuk ke akun</h1>
-        <p class="mt-2 text-sm text-slate-500">Gunakan akun sekolah yang diberikan administrator.</p>
+        <p class="mt-2 text-sm text-slate-500">Gunakan akun sekolah. Orang tua masuk dengan nama sesuai data siswa dan NIS salah satu anak.</p>
     </div>
 
     <form method="POST" action="{{ route('login.store') }}" class="space-y-5 rounded-xl border bg-white p-6 shadow-sm">
         @csrf
 
         <div>
-            <label for="login" class="mb-1 block text-sm font-medium">Nama pengguna atau email</label>
+            <label for="login" class="mb-1 block text-sm font-medium">Nama pengguna, email, atau nama orang tua</label>
             <input id="login" name="login" type="text" value="{{ old('login') }}" autocomplete="username" required autofocus
                 class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">
             @error('login')<p class="mt-1 text-sm text-red-700">{{ $message }}</p>@enderror
         </div>
 
         <div>
-            <label for="password" class="mb-1 block text-sm font-medium">Kata sandi</label>
+            <label for="password" class="mb-1 block text-sm font-medium">Kata sandi (orang tua: NIS anak)</label>
             <input id="password" name="password" type="password" autocomplete="current-password" required
                 class="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-100">
             @error('password')<p class="mt-1 text-sm text-red-700">{{ $message }}</p>@enderror

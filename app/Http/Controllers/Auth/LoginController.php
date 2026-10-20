@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\Guardian;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -36,17 +37,30 @@ class LoginController extends Controller
             ->first();
 
         if (! $user || ! $user->password || ! Hash::check($validated['password'], $user->password)) {
-            return back()
-                ->withErrors(['auth' => 'Nama pengguna/email atau kata sandi tidak cocok.'])
-                ->onlyInput('login');
+            $guardian = Guardian::query()
+                ->where('name', $identifier)
+                ->whereHas('students', fn ($query) => $query->where('nis', $validated['password']))
+                ->with('user')
+                ->first();
+            $guardianUser = $guardian?->user;
+
+            if (! $guardianUser || ! $guardianUser->is_active) {
+                return back()
+                    ->withErrors(['auth' => 'Nama pengguna/email atau kata sandi tidak cocok.'])
+                    ->onlyInput('login');
+            }
+
+            $user = $guardianUser;
         }
 
         Auth::login($user, $request->boolean('remember'));
         $request->session()->regenerate();
 
-        $destination = $user->hasAnyRole('admin', 'kepsek')
-            ? route('kpi.index')
-            : route('home');
+        $destination = match (true) {
+            $user->hasAnyRole('admin', 'kepsek') => route('kpi.index'),
+            $user->hasRole('orangtua') => route('guardian.index'),
+            default => route('home'),
+        };
 
         return redirect()->intended($destination);
     }

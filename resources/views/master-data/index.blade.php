@@ -17,10 +17,9 @@
 @if(! $section)
     @php($masterLinks = [
         ['key' => 'siswa', 'title' => 'Siswa', 'description' => 'Profil, akun masuk, status, dan daftar siswa.'],
-        ['key' => 'kelas', 'title' => 'Kelas', 'description' => 'Tingkat, tahun ajaran, dan wali kelas.'],
+        ['key' => 'kelas', 'title' => 'Kelas', 'description' => 'Tingkat kelas, tahun ajaran, dan wali kelas.'],
         ['key' => 'guru', 'title' => 'Guru', 'description' => 'Profil, akun guru, dan status akun.'],
         ['key' => 'mapel', 'title' => 'Mata Pelajaran', 'description' => 'Kode, nama, dan status mata pelajaran.'],
-        ['key' => 'orang-tua', 'title' => 'Orang Tua/Wali', 'description' => 'Akun wali dan hubungan dengan siswa.'],
         ['key' => 'penugasan', 'title' => 'Penugasan Guru', 'description' => 'Guru, kelas, dan mata pelajaran semester aktif.'],
     ])
     <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -40,6 +39,13 @@
             <a href="{{ route('master-data.section', $key) }}" @class(['shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition', $section === $key ? 'bg-indigo-600 text-white' : 'border border-slate-200 bg-white text-slate-600 hover:border-indigo-300 hover:text-indigo-700']) @if($section === $key) aria-current="page" @endif>{{ $label }}</a>
         @endforeach
     </nav>
+    @if($section)
+        <nav aria-label="Submenu data master" class="flex flex-wrap gap-2 rounded-xl border border-slate-200 bg-white p-2">
+            <a href="{{ route('master-data.section', ['section' => $section, 'tab' => 'data']) }}" @class(['rounded-lg px-4 py-2 text-sm font-semibold transition', $dataTab === 'data' ? 'bg-indigo-600 text-white' : 'border border-slate-200 text-slate-700 hover:bg-slate-50']) @if($dataTab === 'data') aria-current="page" @endif>Data {{ $sectionLabels[$section] }}</a>
+            @can('master.manage')<a href="{{ route('master-data.section', ['section' => $section, 'tab' => 'upload']) }}" @class(['rounded-lg px-4 py-2 text-sm font-semibold transition', $dataTab === 'upload' ? 'bg-indigo-600 text-white' : 'border border-slate-200 text-slate-700 hover:bg-slate-50']) @if($dataTab === 'upload') aria-current="page" @endif>Tambah {{ $sectionLabels[$section] }}</a>@endcan
+        </nav>
+    @endif
+    @if($dataTab !== 'upload')
     <form method="GET" action="{{ request()->url() }}" role="search" class="flex flex-wrap items-end gap-2 rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
         <div class="min-w-56 flex-1">
             <label for="master_search" class="mb-1 block text-xs font-semibold text-slate-600">Cari {{ strtolower($sectionLabels[$section]) }}</label>
@@ -57,16 +63,12 @@
         <button class="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-700">Cari</button>
         @if($search !== '' || $entryYear)<a href="{{ route('master-data.section', $section) }}" class="rounded-lg border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 hover:bg-slate-50">Hapus filter</a>@endif
     </form>
-    @can('master.manage')
-        <div class="mb-5 flex items-center justify-between gap-4 rounded-xl border border-indigo-100 bg-indigo-50/70 px-4 py-3">
-            <div><p class="text-sm font-semibold text-indigo-950">Tambah {{ strtolower($sectionLabels[$section]) }}</p><p class="mt-0.5 text-xs text-indigo-800/80">Isi formulir berikut untuk membuat data baru.</p></div>
-            <a href="#form-tambah" class="shrink-0 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-700">+ Tambah</a>
-        </div>
-    @endcan
+    @endif
 @endif
 
 @if($section)
 @can('master.manage')
+    @if($dataTab === 'upload')
     <div id="form-tambah" class="grid scroll-mt-36 gap-5 lg:grid-cols-2 xl:grid-cols-3">
         @if($section === 'kelas')
         <section class="rounded-xl border bg-white p-5">
@@ -82,7 +84,7 @@
                         @error('name')<p class="mt-1 text-sm text-red-700">{{ $message }}</p>@enderror
                     </div>
                     <div>
-                        <label for="grade_level" class="mb-1 block text-sm font-medium">Tingkat</label>
+                        <label for="grade_level" class="mb-1 block text-sm font-medium">Tingkat Kelas</label>
                         <input id="grade_level" name="grade_level" type="number" min="1" max="12" value="{{ old('grade_level') }}" required class="w-full rounded-lg border px-3 py-2 text-sm">
                         @error('grade_level')<p class="mt-1 text-sm text-red-700">{{ $message }}</p>@enderror
                     </div>
@@ -108,12 +110,13 @@
         @endif
 
         @if($section === 'siswa')
+        @if($dataTab === 'upload')
         <section class="rounded-xl border bg-white p-5">
             <h2 class="font-semibold">Tambah siswa</h2>
             @if($classes->isEmpty())
                 <p class="mt-3 text-sm text-slate-500">Buat kelas terlebih dahulu sebelum mendaftarkan siswa.</p>
             @else
-                <form method="POST" action="{{ route('master-data.students.store') }}" class="mt-4 space-y-3">
+                <form method="POST" action="{{ route('master-data.students.store') }}" enctype="multipart/form-data" class="mt-4 space-y-3">
                     @csrf
                     <div>
                         <label for="student_nis" class="mb-1 block text-sm font-medium">NIS</label>
@@ -121,16 +124,16 @@
                         @error('nis')<p class="mt-1 text-sm text-red-700">{{ $message }}</p>@enderror
                     </div>
                     <div>
-                        <label for="student_nisn" class="mb-1 block text-sm font-medium">NISN (opsional)</label>
-                        <input id="student_nisn" name="nisn" value="{{ old('nisn') }}" class="w-full rounded-lg border px-3 py-2 text-sm">
+                        <label for="student_nisn" class="mb-1 block text-sm font-medium">NISN (10 digit, opsional)</label>
+                        <input id="student_nisn" name="nisn" value="{{ old('nisn') }}" inputmode="numeric" maxlength="10" pattern="[0-9]{10}" placeholder="10 digit" class="w-full rounded-lg border px-3 py-2 text-sm">
                         @error('nisn')<p class="mt-1 text-sm text-red-700">{{ $message }}</p>@enderror
                     </div>
                     <div>
-                        <label for="student_name" class="mb-1 block text-sm font-medium">Nama siswa</label>
+                        <label for="student_name" class="mb-1 block text-sm font-medium">Nama lengkap (sesuai akta kelahiran)</label>
                         <input id="student_name" name="name" value="{{ old('name') }}" required class="w-full rounded-lg border px-3 py-2 text-sm">
                         @error('name')<p class="mt-1 text-sm text-red-700">{{ $message }}</p>@enderror
                     </div>
-                    <div class="grid gap-3 sm:grid-cols-3">
+                    <div class="grid gap-3 sm:grid-cols-2">
                         <div>
                             <label for="gender" class="mb-1 block text-sm font-medium">Jenis kelamin</label>
                             <select id="gender" name="gender" required class="w-full rounded-lg border bg-white px-3 py-2 text-sm">
@@ -140,8 +143,29 @@
                         </div>
                         <div>
                             <label for="birth_date" class="mb-1 block text-sm font-medium">Tanggal lahir</label>
-                            <input id="birth_date" name="birth_date" type="date" value="{{ old('birth_date') }}" class="w-full rounded-lg border px-3 py-2 text-sm">
+                            <input id="birth_date" name="birth_date" type="date" value="{{ old('birth_date') }}" required class="w-full rounded-lg border px-3 py-2 text-sm">
                             @error('birth_date')<p class="mt-1 text-sm text-red-700">{{ $message }}</p>@enderror
+                        </div>
+                        <div>
+                            <label for="birth_place" class="mb-1 block text-sm font-medium">Tempat lahir</label>
+                            <input id="birth_place" name="birth_place" value="{{ old('birth_place') }}" maxlength="100" class="w-full rounded-lg border px-3 py-2 text-sm">
+                            @error('birth_place')<p class="mt-1 text-sm text-red-700">{{ $message }}</p>@enderror
+                        </div>
+                        <div>
+                            <label for="student_religion" class="mb-1 block text-sm font-medium">Agama</label>
+                            <input id="student_religion" name="religion" value="{{ old('religion') }}" maxlength="50" placeholder="Contoh: Islam" class="w-full rounded-lg border px-3 py-2 text-sm">
+                            @error('religion')<p class="mt-1 text-sm text-red-700">{{ $message }}</p>@enderror
+                        </div>
+                        <div>
+                            <label for="student_nik" class="mb-1 block text-sm font-medium">NIK (opsional)</label>
+                            <input id="student_nik" name="nik" value="{{ old('nik') }}" inputmode="numeric" maxlength="16" pattern="[0-9]{16}" placeholder="16 digit" class="w-full rounded-lg border px-3 py-2 text-sm">
+                            @error('nik')<p class="mt-1 text-sm text-red-700">{{ $message }}</p>@enderror
+                        </div>
+                        <div>
+                            <label for="student_photo" class="mb-1 block text-sm font-medium">Foto siswa (opsional)</label>
+                            <input id="student_photo" name="photo" type="file" accept="image/jpeg,image/png,image/webp" class="w-full rounded-lg border bg-white px-3 py-2 text-sm">
+                            <p class="mt-1 text-xs text-slate-500">JPG, PNG, atau WebP · maksimal 2 MB</p>
+                            @error('photo')<p class="mt-1 text-sm text-red-700">{{ $message }}</p>@enderror
                         </div>
                         <div>
                             <label for="student_registration_date" class="mb-1 block text-sm font-medium">Tanggal terdaftar</label>
@@ -150,29 +174,48 @@
                         </div>
                     </div>
                     <div>
-                        <label for="student_class_id" class="mb-1 block text-sm font-medium">Kelas</label>
-                        <select id="student_class_id" name="class_id" class="w-full rounded-lg border bg-white px-3 py-2 text-sm">
-                            <option value="">Belum ditempatkan — pilih wali kelas nanti</option>
-                            @foreach($classes as $class)<option value="{{ $class->id }}" @selected(old('class_id') == $class->id)>Kelas {{ $class->name }} · {{ $class->academic_year }}</option>@endforeach
-                        </select>
-                        @error('class_id')<p class="mt-1 text-sm text-red-700">{{ $message }}</p>@enderror
+                        <label for="student_phone" class="mb-1 block text-sm font-medium">Nomor HP siswa (opsional)</label>
+                        <input id="student_phone" name="phone" value="{{ old('phone') }}" maxlength="20" class="w-full rounded-lg border px-3 py-2 text-sm">
+                        @error('phone')<p class="mt-1 text-sm text-red-700">{{ $message }}</p>@enderror
                     </div>
-                    <details class="rounded-lg border p-3">
-                        <summary class="cursor-pointer text-sm font-medium">Buat akun login siswa (opsional)</summary>
-                        <p class="mt-1 text-xs text-slate-500">Isi nama pengguna dan kata sandi jika siswa akan masuk ke aplikasi.</p>
-                        <div class="mt-3 space-y-2">
-                            <input name="username" value="{{ old('username') }}" placeholder="Nama pengguna" autocomplete="off" class="w-full rounded border px-2 py-1.5 text-sm" aria-label="Nama pengguna siswa">
-                            <input name="email" type="email" value="{{ old('email') }}" placeholder="Email (opsional)" class="w-full rounded border px-2 py-1.5 text-sm" aria-label="Email siswa">
-                            <input name="password" type="password" autocomplete="new-password" placeholder="Kata sandi awal, minimal 12 karakter" class="w-full rounded border px-2 py-1.5 text-sm" aria-label="Kata sandi siswa">
-                            <input name="password_confirmation" type="password" autocomplete="new-password" placeholder="Ulangi kata sandi" class="w-full rounded border px-2 py-1.5 text-sm" aria-label="Ulangi kata sandi siswa">
-                            @error('username')<p class="text-xs text-red-700">{{ $message }}</p>@enderror
-                            @error('password')<p class="text-xs text-red-700">{{ $message }}</p>@enderror
+                    <details class="rounded-lg border p-3" open>
+                        <summary class="cursor-pointer text-sm font-semibold">Data orang tua/wali</summary>
+                        <p class="mt-1 text-xs text-slate-500">Nama Ayah atau Ibu wajib diisi minimal salah satu. Wali boleh ditambahkan jika berbeda.</p>
+                        <div class="mt-3 grid gap-3 sm:grid-cols-2">
+                            @foreach(['father' => 'Ayah', 'mother' => 'Ibu', 'guardian' => 'Wali (opsional)'] as $prefix => $label)
+                                <fieldset class="space-y-2 rounded-lg border p-3">
+                                    <legend class="px-1 text-xs font-semibold">{{ $label }}</legend>
+                                    <input name="{{ $prefix }}_name" value="{{ old($prefix.'_name') }}" placeholder="Nama {{ strtolower($label) }}" class="w-full rounded border px-2 py-1.5 text-sm" aria-label="Nama {{ $label }}">
+                                    <input name="{{ $prefix }}_phone" value="{{ old($prefix.'_phone') }}" placeholder="Nomor HP" class="w-full rounded border px-2 py-1.5 text-sm" aria-label="Nomor HP {{ $label }}">
+                                    <input name="{{ $prefix }}_occupation" value="{{ old($prefix.'_occupation') }}" maxlength="100" placeholder="Pekerjaan" class="w-full rounded border px-2 py-1.5 text-sm" aria-label="Pekerjaan {{ $label }}">
+                                    @error($prefix.'_name')<p class="text-xs text-red-700">{{ $message }}</p>@enderror
+                                    @error($prefix.'_phone')<p class="text-xs text-red-700">{{ $message }}</p>@enderror
+                                    @error($prefix.'_occupation')<p class="text-xs text-red-700">{{ $message }}</p>@enderror
+                                </fieldset>
+                            @endforeach
                         </div>
                     </details>
+                    <div class="rounded-lg bg-indigo-50 p-3 text-xs text-indigo-900">
+                        Email siswa dibuat otomatis setelah disimpan. Kata sandi awal adalah tanggal lahir dengan format tahun-bulan-tanggal (YYYY-MM-DD).
+                    </div>
                     <button class="w-full rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Simpan siswa</button>
                 </form>
             @endif
         </section>
+        @endif
+        @if($dataTab === 'upload')
+        <section class="rounded-xl border border-indigo-100 bg-white p-5">
+            <h2 class="font-semibold">Impor siswa dari Excel/CSV</h2>
+            <p class="mt-1 text-xs leading-5 text-slate-500">Isi template di Excel lalu simpan sebagai CSV UTF-8. Ayah atau Ibu harus terisi minimal salah satu. Email dan akun dibuat otomatis; maksimal 2.000 baris per unggahan.</p>
+            <a href="{{ route('master-data.students.template') }}" class="mt-3 inline-flex rounded-lg border border-indigo-200 px-3 py-2 text-xs font-semibold text-indigo-700 hover:bg-indigo-50">Unduh template CSV</a>
+            <form method="POST" action="{{ route('master-data.students.import') }}" enctype="multipart/form-data" class="mt-4 space-y-3">
+                @csrf
+                <input type="file" name="file" accept=".csv,text/csv" required class="w-full rounded-lg border bg-white px-3 py-2 text-sm" aria-label="File CSV data siswa">
+                @error('file')<p class="text-xs text-red-700">{{ $message }}</p>@enderror
+                <button class="w-full rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Unggah siswa</button>
+            </form>
+        </section>
+        @endif
         @endif
 
         @if($section === 'mapel')
@@ -244,40 +287,6 @@
         </section>
         @endif
 
-        @if($section === 'orang-tua')
-        <section class="rounded-xl border bg-white p-5">
-            <h2 class="font-semibold">Buat akun orang tua/wali</h2>
-            <p class="mt-1 text-xs text-slate-500">Satu akun dapat terhubung ke beberapa anak. Kata sandi minimal 12 karakter.</p>
-            @if($allStudents->isEmpty())
-                <p class="mt-4 text-sm text-slate-500">Tambahkan siswa terlebih dahulu.</p>
-            @else
-                <form method="POST" action="{{ route('master-data.guardians.store') }}" class="mt-4 space-y-3">
-                    @csrf
-                    <input name="name" value="{{ old('name') }}" placeholder="Nama orang tua/wali" required class="w-full rounded-lg border px-3 py-2 text-sm" aria-label="Nama orang tua/wali">
-                    <input name="username" value="{{ old('username') }}" placeholder="Nama pengguna" required autocomplete="off" class="w-full rounded-lg border px-3 py-2 text-sm" aria-label="Nama pengguna">
-                    <input name="email" type="email" value="{{ old('email') }}" placeholder="Email (opsional)" class="w-full rounded-lg border px-3 py-2 text-sm" aria-label="Email">
-                    <input name="phone" value="{{ old('phone') }}" placeholder="Nomor telepon (opsional)" class="w-full rounded-lg border px-3 py-2 text-sm" aria-label="Nomor telepon">
-                    <div class="grid grid-cols-2 gap-2">
-                        <input name="password" type="password" autocomplete="new-password" placeholder="Kata sandi awal" required class="w-full rounded-lg border px-3 py-2 text-sm" aria-label="Kata sandi awal">
-                        <input name="password_confirmation" type="password" autocomplete="new-password" placeholder="Ulangi kata sandi" required class="w-full rounded-lg border px-3 py-2 text-sm" aria-label="Ulangi kata sandi">
-                    </div>
-                    <label class="block text-sm font-medium">Hubungan dengan anak</label>
-                    <select name="relationship" required class="w-full rounded-lg border bg-white px-3 py-2 text-sm">
-                        <option value="ayah">Ayah</option><option value="ibu">Ibu</option><option value="wali">Wali</option>
-                    </select>
-                    <div class="max-h-36 space-y-1 overflow-y-auto rounded-lg border p-2">
-                        @foreach($allStudents as $child)
-                            <label class="flex items-center gap-2 text-xs"><input type="checkbox" name="student_ids[]" value="{{ $child->id }}" @checked(in_array($child->id, old('student_ids', [])))> {{ $child->name }} · NIS {{ $child->nis }}</label>
-                        @endforeach
-                    </div>
-                    @error('student_ids')<p class="text-xs text-red-700">{{ $message }}</p>@enderror
-                    @error('password')<p class="text-xs text-red-700">{{ $message }}</p>@enderror
-                    <button class="w-full rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Buat akun orang tua/wali</button>
-                </form>
-            @endif
-        </section>
-        @endif
-
         @if($section === 'penugasan')
         <section class="rounded-xl border bg-white p-5">
             <h2 class="font-semibold">Tugaskan guru</h2>
@@ -318,194 +327,94 @@
             @endif
         </section>
         @endif
+        @if(in_array($section, ['kelas', 'guru', 'mapel', 'penugasan'], true))
+        <section class="rounded-xl border border-indigo-100 bg-white p-5">
+            <h2 class="font-semibold">Upload {{ strtolower($sectionLabels[$section]) }} dari CSV</h2>
+            <p class="mt-1 text-xs leading-5 text-slate-500">Unduh template, isi di Excel, lalu simpan sebagai CSV UTF-8. @if($section === 'guru') Kata sandi awal wajib minimal 12 karakter. @elseif($section === 'penugasan') Guru, kelas, dan kode mapel harus sudah tersedia pada semester aktif. @endif</p>
+            <a href="{{ route('master-data.import-template', $section) }}" class="mt-3 inline-flex rounded-lg border border-indigo-200 px-3 py-2 text-xs font-semibold text-indigo-700 hover:bg-indigo-50">Unduh template CSV</a>
+            <form method="POST" action="{{ route('master-data.import', $section) }}" enctype="multipart/form-data" class="mt-4 space-y-3">
+                @csrf
+                <input type="file" name="file" accept=".csv,text/csv" required class="w-full rounded-lg border bg-white px-3 py-2 text-sm" aria-label="File CSV {{ strtolower($sectionLabels[$section]) }}">
+                @error('file')<p class="text-xs text-red-700">{{ $message }}</p>@enderror
+                <button class="w-full rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Unggah {{ strtolower($sectionLabels[$section]) }}</button>
+            </form>
+        </section>
+        @endif
     </div>
+    @endif
 @endcan
 
-<div class="grid gap-5 {{ $section === 'siswa' ? 'lg:grid-cols-2 xl:grid-cols-3' : 'lg:grid-cols-2' }}">
-    @if($section === 'kelas')
+<div class="space-y-5">
+    @if($section === 'kelas' && $dataTab === 'data')
     <section class="overflow-hidden rounded-xl border bg-white">
-        <h2 class="border-b px-5 py-4 font-semibold">Kelas <span class="text-sm font-normal text-slate-500">({{ $classes->count() }})</span></h2>
-        <div class="divide-y">
-            @forelse($classes as $class)
-                <div class="px-5 py-3 text-sm">
-                    <p class="font-medium">{{ $class->name }} · tingkat {{ $class->grade_level }}</p>
-                    <p class="mt-1 text-xs text-slate-500">{{ $class->academic_year }} · Wali kelas: {{ $class->homeroomTeacher?->name ?? 'Belum ditentukan' }}</p>
-                    @can('master.manage')
-                        <details class="mt-2"><summary class="cursor-pointer text-xs font-medium text-indigo-700">Ubah kelas</summary>
-                            <form method="POST" action="{{ route('master-data.classes.update', $class) }}" class="mt-2 space-y-2">
-                                @csrf @method('PUT')
-                                <input name="name" value="{{ $class->name }}" required maxlength="30" class="w-full rounded border px-2 py-1 text-xs" aria-label="Nama kelas">
-                                <input name="grade_level" type="number" min="1" max="12" value="{{ $class->grade_level }}" required class="w-full rounded border px-2 py-1 text-xs" aria-label="Tingkat kelas">
-                                <select name="homeroom_teacher_id" class="w-full rounded border bg-white px-2 py-1 text-xs" aria-label="Wali kelas">
-                                    <option value="">Belum ditentukan</option>
-                                    @foreach($teachers as $teacher)<option value="{{ $teacher->id }}" @selected($class->homeroom_teacher_id == $teacher->id)>{{ $teacher->name }}</option>@endforeach
-                                </select>
-                                <button class="rounded bg-indigo-600 px-3 py-1 text-xs text-white">Simpan perubahan</button>
-                            </form>
-                        </details>
-                        @if($class->enrollments_count === 0 && $class->assignments_count === 0)
-                            <form method="POST" action="{{ route('master-data.classes.destroy', $class) }}" class="mt-2" onsubmit="return confirm('Hapus kelas kosong ini?')">
-                                @csrf @method('DELETE')<button class="text-xs text-red-700 underline">Hapus kelas kosong</button>
-                            </form>
-                        @else
-                            <p class="mt-1 text-xs text-slate-400">Kelas berisi data, tidak dapat dihapus.</p>
-                        @endif
-                    @endcan
-                </div>
-            @empty
-                <p class="px-5 py-6 text-sm text-slate-500">{{ $search !== '' ? 'Tidak ada kelas yang cocok dengan pencarian.' : 'Belum ada kelas.' }}</p>
-            @endforelse
+        <div class="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4">
+            <h2 class="font-semibold">Kelas <span class="text-sm font-normal text-slate-500">({{ $classes->count() }})</span></h2>
+            @can('master.manage')<a href="{{ route('master-data.classes.export', request()->only(['q'])) }}" class="inline-flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-100"><span aria-hidden="true">↓</span> Ekspor CSV</a>@endcan
         </div>
+        <div class="overflow-x-auto"><table class="min-w-full text-left text-sm"><thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr><th class="px-4 py-3">Nama kelas</th><th class="px-4 py-3">Tingkat</th><th class="px-4 py-3">Tahun ajaran</th><th class="px-4 py-3">Wali kelas</th><th class="px-4 py-3">Siswa</th>@can('master.manage')<th class="px-4 py-3">Kelola</th>@endcan</tr></thead><tbody class="divide-y divide-slate-100">
+            @forelse($classes as $class)
+                <tr><td class="whitespace-nowrap px-4 py-3 font-medium">{{ $class->name }}</td><td class="px-4 py-3">{{ $class->grade_level }}</td><td class="whitespace-nowrap px-4 py-3">{{ $class->academic_year }}</td><td class="whitespace-nowrap px-4 py-3">{{ $class->homeroomTeacher?->name ?? '—' }}</td><td class="px-4 py-3">{{ $class->enrollments_count }}</td>@can('master.manage')<td class="px-4 py-3"><a href="{{ route('master-data.classes.edit', $class) }}" class="rounded-lg border border-indigo-200 px-3 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-50">Kelola</a></td>@endcan</tr>
+            @empty<tr><td colspan="6" class="px-5 py-8 text-center text-slate-500">{{ $search !== '' ? 'Tidak ada kelas yang cocok dengan pencarian.' : 'Belum ada kelas.' }}</td></tr>@endforelse
+        </tbody></table></div>
     </section>
     @endif
 
-    @if($section === 'siswa')
+    @if($section === 'siswa' && $dataTab === 'data')
     <section class="overflow-hidden rounded-xl border bg-white">
-        <div class="border-b px-5 py-4"><h2 class="font-semibold">Siswa <span class="text-sm font-normal text-slate-500">({{ $students->total() }})</span></h2><p class="mt-1 text-xs text-slate-500">Urut dari tahun dan tanggal terdaftar terbaru.</p></div>
-        <div class="divide-y">
-            @forelse($students as $student)
-                @php($enrollment = $student->enrollments->sortByDesc('academic_year')->first())
-                <div class="px-5 py-3 text-sm">
-                    <p class="font-medium">{{ $student->name }}</p>
-                    <p class="mt-1 text-xs text-slate-500">NIS {{ $student->nis }} · {{ $enrollment?->schoolClass?->name ? 'Kelas '.$enrollment->schoolClass->name : 'Belum memiliki kelas' }} · Terdaftar {{ $student->registration_date?->format('d/m/Y') ?? '—' }} · {{ ucfirst($student->status) }}</p>
-                    @can('master.manage')
-                        <details class="mt-2"><summary class="cursor-pointer text-xs font-medium text-indigo-700">Ubah data siswa</summary>
-                            <form method="POST" action="{{ route('master-data.students.update', $student) }}" class="mt-2 space-y-2">
-                                @csrf @method('PUT')
-                                <input name="nis" value="{{ $student->nis }}" required maxlength="30" class="w-full rounded border px-2 py-1 text-xs" aria-label="NIS">
-                                <input name="nisn" value="{{ $student->nisn }}" maxlength="30" class="w-full rounded border px-2 py-1 text-xs" aria-label="NISN">
-                                <input name="name" value="{{ $student->name }}" required class="w-full rounded border px-2 py-1 text-xs" aria-label="Nama siswa">
-                                <div class="grid grid-cols-2 gap-2">
-                                    <select name="gender" required class="rounded border bg-white px-2 py-1 text-xs" aria-label="Jenis kelamin">
-                                        <option value="L" @selected($student->gender === 'L')>Laki-laki</option><option value="P" @selected($student->gender === 'P')>Perempuan</option>
-                                    </select>
-                                    <select name="status" required class="rounded border bg-white px-2 py-1 text-xs" aria-label="Status siswa">
-                                        @foreach(['aktif' => 'Aktif', 'lulus' => 'Lulus', 'pindah' => 'Pindah', 'keluar' => 'Keluar'] as $value => $label)<option value="{{ $value }}" @selected($student->status === $value)>{{ $label }}</option>@endforeach
-                                    </select>
-                                </div>
-                                <input name="birth_date" type="date" value="{{ $student->birth_date?->format('Y-m-d') }}" class="w-full rounded border px-2 py-1 text-xs" aria-label="Tanggal lahir">
-                                <label class="block text-xs font-medium text-slate-600">Tanggal terdaftar
-                                    <input name="registration_date" type="date" max="{{ now()->toDateString() }}" value="{{ $student->registration_date?->format('Y-m-d') }}" required class="mt-1 w-full rounded border px-2 py-1 text-xs" aria-label="Tanggal terdaftar siswa">
-                                </label>
-                                <select name="class_id" class="w-full rounded border bg-white px-2 py-1 text-xs" aria-label="Kelas siswa">
-                                    <option value="" @selected(! $enrollment)>Pertahankan penempatan saat ini</option>
-                                    @foreach($classes as $class)<option value="{{ $class->id }}" @selected($enrollment?->class_id === $class->id)>Kelas {{ $class->name }} · {{ $class->academic_year }}</option>@endforeach
-                                </select>
-                                <details class="rounded border p-2">
-                                    <summary class="cursor-pointer text-xs font-medium">Akun login siswa</summary>
-                                    <input name="username" value="{{ $student->user?->username }}" placeholder="Nama pengguna" autocomplete="off" class="mt-2 w-full rounded border px-2 py-1 text-xs" aria-label="Nama pengguna siswa">
-                                    <input name="email" type="email" value="{{ $student->user?->email }}" placeholder="Email (opsional)" class="mt-2 w-full rounded border px-2 py-1 text-xs" aria-label="Email siswa">
-                                    <label class="mt-2 block text-xs text-slate-600">Kata sandi baru (kosongkan jika tidak diubah)</label>
-                                    <input name="password" type="password" autocomplete="new-password" minlength="12" class="mt-1 w-full rounded border px-2 py-1 text-xs" aria-label="Kata sandi baru siswa">
-                                    <input name="password_confirmation" type="password" autocomplete="new-password" minlength="12" placeholder="Ulangi kata sandi baru" class="mt-2 w-full rounded border px-2 py-1 text-xs" aria-label="Ulangi kata sandi baru siswa">
-                                    <select name="account_active" class="mt-2 w-full rounded border bg-white px-2 py-1 text-xs" aria-label="Status akun login siswa">
-                                        <option value="1" @selected($student->user?->is_active)>Akun aktif</option><option value="0" @selected($student->user && ! $student->user->is_active)>Akun nonaktif</option>
-                                    </select>
-                                </details>
-                                <button class="rounded bg-indigo-600 px-3 py-1 text-xs text-white">Simpan perubahan</button>
-                            </form>
-                        </details>
-                        <form method="POST" action="{{ route('master-data.students.destroy', $student) }}" class="mt-2" onsubmit="return confirm('Arsipkan siswa ini? Akun masuknya akan dinonaktifkan, riwayat tetap tersimpan.')">
-                            @csrf @method('DELETE')<button class="text-xs text-red-700 underline">Arsipkan siswa</button>
-                        </form>
-                    @endcan
-                </div>
-            @empty
-                <p class="px-5 py-6 text-sm text-slate-500">{{ $search !== '' ? 'Tidak ada siswa yang cocok dengan pencarian.' : 'Belum ada siswa.' }}</p>
-            @endforelse
+        <div class="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4">
+            <div><h2 class="font-semibold">Siswa <span class="text-sm font-normal text-slate-500">({{ $students->total() }})</span></h2><p class="mt-1 text-xs text-slate-500">Urut dari tahun dan tanggal terdaftar terbaru.</p></div>
+            @can('master.manage')<a href="{{ route('master-data.students.export', request()->only(['q', 'entry_year'])) }}" class="inline-flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-100"><span aria-hidden="true">↓</span> Ekspor CSV</a>@endcan
+        </div>
+        <div class="overflow-x-auto">
+            <table class="min-w-full text-left text-sm">
+                <thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr><th class="px-4 py-3">Siswa</th><th class="px-4 py-3">NIS / NISN</th><th class="px-4 py-3">Kelas</th><th class="px-4 py-3">Tanggal daftar</th><th class="px-4 py-3">Email login</th><th class="px-4 py-3">Status</th><th class="px-4 py-3">Kelola</th></tr></thead>
+                <tbody class="divide-y divide-slate-100">
+                    @forelse($students as $student)
+                        @php($tableEnrollment = $student->enrollments->sortByDesc('academic_year')->first())
+                        <tr class="align-middle">
+                            <td class="whitespace-nowrap px-4 py-3"><div class="flex items-center gap-2">@if($student->photo_path)<img src="{{ asset('storage/'.$student->photo_path) }}" alt="Foto {{ $student->name }}" class="size-9 rounded-full object-cover">@else<span class="grid size-9 place-items-center rounded-full bg-indigo-50 font-semibold text-indigo-700">{{ mb_substr($student->name, 0, 1) }}</span>@endif<span class="font-medium">{{ $student->name }}</span></div></td>
+                            <td class="whitespace-nowrap px-4 py-3 text-xs text-slate-600">{{ $student->nis }}<br>{{ $student->nisn ?: '—' }}</td><td class="whitespace-nowrap px-4 py-3">{{ $tableEnrollment?->schoolClass?->name ?? 'Belum ada kelas' }}</td><td class="whitespace-nowrap px-4 py-3">{{ $student->registration_date?->format('d/m/Y') ?? '—' }}</td><td class="whitespace-nowrap px-4 py-3 text-xs text-indigo-700">{{ $student->user?->email ?? 'Belum dibuat' }}</td><td class="whitespace-nowrap px-4 py-3">{{ ucfirst($student->status) }}</td>
+                            <td class="whitespace-nowrap px-4 py-3">@can('master.manage')<a href="{{ route('master-data.students.edit', $student) }}" class="rounded-lg border border-indigo-200 px-3 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-50">Ubah / CRUD</a>@else<span class="text-xs text-slate-400">Lihat</span>@endcan</td>
+                        </tr>
+                    @empty<tr><td colspan="7" class="px-4 py-8 text-center text-slate-500">{{ $search !== '' ? 'Tidak ada siswa yang cocok dengan pencarian.' : 'Belum ada siswa.' }}</td></tr>@endforelse
+                </tbody>
+            </table>
         </div>
         @if($students->hasPages())<div class="border-t px-5 py-3">{{ $students->links() }}</div>@endif
     </section>
     @endif
 
-    @if($section === 'mapel')
+    @if($section === 'mapel' && $dataTab === 'data')
     <section class="overflow-hidden rounded-xl border bg-white">
-        <h2 class="border-b px-5 py-4 font-semibold">Mata pelajaran <span class="text-sm font-normal text-slate-500">({{ $subjects->count() }})</span></h2>
-        <div class="divide-y">
+        <div class="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4"><h2 class="font-semibold">Mata pelajaran <span class="text-sm font-normal text-slate-500">({{ $subjects->count() }})</span></h2>@can('master.manage')<a href="{{ route('master-data.subjects.export', request()->only(['q'])) }}" class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-100">↓ Ekspor CSV</a>@endcan</div>
+        <div class="overflow-x-auto"><table class="min-w-full text-left text-sm"><thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr><th class="px-4 py-3">Kode</th><th class="px-4 py-3">Mata pelajaran</th><th class="px-4 py-3">Status</th>@can('master.manage')<th class="px-4 py-3">Kelola</th>@endcan</tr></thead><tbody class="divide-y divide-slate-100">
             @forelse($subjects as $subject)
-                <div class="px-5 py-3 text-sm">
-                    <p class="font-medium">{{ $subject->name }}</p><p class="mt-1 text-xs text-slate-500">{{ $subject->code ?? 'Tanpa kode' }} · {{ $subject->is_active ? 'Aktif' : 'Nonaktif' }}</p>
-                    @can('master.manage')
-                        <details class="mt-2"><summary class="cursor-pointer text-xs font-medium text-indigo-700">Ubah mapel</summary>
-                            <form method="POST" action="{{ route('master-data.subjects.update', $subject) }}" class="mt-2 space-y-2">
-                                @csrf @method('PUT')
-                                <input name="code" value="{{ $subject->code }}" maxlength="20" class="w-full rounded border px-2 py-1 text-xs" aria-label="Kode mapel">
-                                <input name="name" value="{{ $subject->name }}" required class="w-full rounded border px-2 py-1 text-xs" aria-label="Nama mapel">
-                                <select name="is_active" class="w-full rounded border bg-white px-2 py-1 text-xs" aria-label="Status mapel">
-                                    <option value="1" @selected($subject->is_active)>Aktif</option><option value="0" @selected(! $subject->is_active)>Nonaktif</option>
-                                </select>
-                                <button class="rounded bg-indigo-600 px-3 py-1 text-xs text-white">Simpan perubahan</button>
-                            </form>
-                        </details>
-                    @endcan
-                </div>
-            @empty
-                <p class="px-5 py-6 text-sm text-slate-500">{{ $search !== '' ? 'Tidak ada mata pelajaran yang cocok dengan pencarian.' : 'Belum ada mata pelajaran.' }}</p>
-            @endforelse
-        </div>
+                <tr><td class="px-4 py-3">{{ $subject->code ?? '—' }}</td><td class="px-4 py-3 font-medium">{{ $subject->name }}</td><td class="px-4 py-3">{{ $subject->is_active ? 'Aktif' : 'Nonaktif' }}</td>@can('master.manage')<td class="px-4 py-3"><a href="{{ route('master-data.subjects.edit', $subject) }}" class="rounded-lg border border-indigo-200 px-3 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-50">Kelola</a></td>@endcan</tr>
+            @empty<tr><td colspan="4" class="px-5 py-8 text-center text-slate-500">{{ $search !== '' ? 'Tidak ada mata pelajaran yang cocok dengan pencarian.' : 'Belum ada mata pelajaran.' }}</td></tr>@endforelse
+        </tbody></table></div>
     </section>
     @endif
 
-    @if($section === 'guru')
+    @if($section === 'guru' && $dataTab === 'data')
     <section class="overflow-hidden rounded-xl border bg-white">
-        <h2 class="border-b px-5 py-4 font-semibold">Guru <span class="text-sm font-normal text-slate-500">({{ $teacherProfiles->count() }})</span></h2>
-        <div class="divide-y">
+        <div class="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4"><h2 class="font-semibold">Guru <span class="text-sm font-normal text-slate-500">({{ $teacherProfiles->count() }})</span></h2>@can('master.manage')<a href="{{ route('master-data.teachers.export', request()->only(['q'])) }}" class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-100">↓ Ekspor CSV</a>@endcan</div>
+        <div class="overflow-x-auto"><table class="min-w-full text-left text-sm"><thead class="bg-slate-50 text-xs uppercase tracking-wide text-slate-500"><tr><th class="px-4 py-3">Nama guru</th><th class="px-4 py-3">NIP</th><th class="px-4 py-3">Username</th><th class="px-4 py-3">Email</th><th class="px-4 py-3">HP</th><th class="px-4 py-3">Status</th>@can('master.manage')<th class="px-4 py-3">Kelola</th>@endcan</tr></thead><tbody class="divide-y divide-slate-100">
             @forelse($teacherProfiles as $teacher)
-                <div class="px-5 py-3 text-sm">
-                    <p class="font-medium">{{ $teacher->name }}</p>
-                    <p class="mt-1 text-xs text-slate-500">{{ $teacher->user?->username ? '@'.$teacher->user->username : 'Belum ada akun masuk' }} · {{ $teacher->is_active ? 'Aktif' : 'Nonaktif' }}</p>
-                    @if($teacher->assignments->isNotEmpty())
-                        <div class="mt-2 space-y-1 text-xs text-indigo-700">
-                            @foreach($teacher->assignments as $assignment)
-                                <div class="flex items-center justify-between gap-2">
-                                    <span>{{ $assignment->subject->name }} · {{ $assignment->schoolClass->name }}</span>
-                                    @can('master.manage')
-                                        <form method="POST" action="{{ route('master-data.assignments.destroy', $assignment) }}" onsubmit="return confirm('Hapus penugasan ini? Riwayat nilai dan absensi tidak ikut dihapus.')">
-                                            @csrf @method('DELETE')<button class="text-red-700 underline">Hapus</button>
-                                        </form>
-                                    @endcan
-                                </div>
-                            @endforeach
-                        </div>
-                    @endif
-                    @can('master.manage')
-                        @if($teacher->user)
-                            <details class="mt-2"><summary class="cursor-pointer text-xs font-medium text-indigo-700">Ubah profil dan akun</summary>
-                                <form method="POST" action="{{ route('master-data.teachers.update', $teacher) }}" class="mt-2 space-y-2">
-                                    @csrf @method('PUT')
-                                    <input name="name" value="{{ $teacher->name }}" required class="w-full rounded border px-2 py-1 text-xs" aria-label="Nama guru">
-                                    <input name="username" value="{{ $teacher->user->username }}" required class="w-full rounded border px-2 py-1 text-xs" aria-label="Nama pengguna">
-                                    <input name="email" type="email" value="{{ $teacher->user->email }}" class="w-full rounded border px-2 py-1 text-xs" aria-label="Email">
-                                    <div class="grid grid-cols-2 gap-2">
-                                        <input name="nip" value="{{ $teacher->nip }}" class="w-full rounded border px-2 py-1 text-xs" aria-label="NIP">
-                                        <input name="phone" value="{{ $teacher->phone }}" class="w-full rounded border px-2 py-1 text-xs" aria-label="Telepon">
-                                    </div>
-                                    <label class="block text-xs text-slate-600">Kata sandi baru (kosongkan jika tidak diubah)</label>
-                                    <input name="password" type="password" autocomplete="new-password" minlength="12" class="w-full rounded border px-2 py-1 text-xs" aria-label="Kata sandi baru">
-                                    <input name="password_confirmation" type="password" autocomplete="new-password" minlength="12" class="w-full rounded border px-2 py-1 text-xs" aria-label="Ulangi kata sandi baru">
-                                    <select name="is_active" class="w-full rounded border bg-white px-2 py-1 text-xs" aria-label="Status akun guru">
-                                        <option value="1" @selected($teacher->is_active)>Aktif</option><option value="0" @selected(! $teacher->is_active)>Nonaktif</option>
-                                    </select>
-                                    <button class="rounded bg-indigo-600 px-3 py-1 text-xs text-white">Simpan perubahan</button>
-                                </form>
-                            </details>
-                        @endif
-                    @endcan
-                </div>
-            @empty
-                <p class="px-5 py-6 text-sm text-slate-500">{{ $search !== '' ? 'Tidak ada guru yang cocok dengan pencarian.' : 'Belum ada guru.' }}</p>
-            @endforelse
-        </div>
+                <tr><td class="whitespace-nowrap px-4 py-3 font-medium">{{ $teacher->name }}</td><td class="whitespace-nowrap px-4 py-3">{{ $teacher->nip ?? '—' }}</td><td class="whitespace-nowrap px-4 py-3">{{ $teacher->user?->username ?? '—' }}</td><td class="whitespace-nowrap px-4 py-3">{{ $teacher->user?->email ?? '—' }}</td><td class="whitespace-nowrap px-4 py-3">{{ $teacher->phone ?? '—' }}</td><td class="whitespace-nowrap px-4 py-3">{{ $teacher->is_active ? 'Aktif' : 'Nonaktif' }}</td>
+                    @can('master.manage')<td class="px-4 py-3">@if($teacher->user)<a href="{{ route('master-data.teachers.edit', $teacher) }}" class="rounded-lg border border-indigo-200 px-3 py-1.5 text-xs font-semibold text-indigo-700 hover:bg-indigo-50">Kelola</a>@endif</td>@endcan
+                </tr>
+            @empty<tr><td colspan="7" class="px-5 py-8 text-center text-slate-500">{{ $search !== '' ? 'Tidak ada guru yang cocok dengan pencarian.' : 'Belum ada guru.' }}</td></tr>@endforelse
+        </tbody></table></div>
     </section>
-    @elseif($section === 'penugasan')
+    @elseif($section === 'penugasan' && $dataTab === 'data')
     <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm lg:col-span-2">
-        <div class="border-b px-5 py-4"><h2 class="font-semibold text-slate-900">Penugasan semester aktif</h2><p class="mt-1 text-sm text-slate-500">{{ $semester ? $semester->label() : 'Belum ada semester aktif' }} · {{ $assignments->count() }} penugasan</p></div>
+        <div class="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4"><div><h2 class="font-semibold text-slate-900">Penugasan semester aktif</h2><p class="mt-1 text-sm text-slate-500">{{ $semester ? $semester->label() : 'Belum ada semester aktif' }} · {{ $assignments->count() }} penugasan</p></div>@can('master.manage')<a href="{{ route('master-data.assignments.export', request()->only(['q'])) }}" class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800 hover:bg-emerald-100">↓ Ekspor CSV</a>@endcan</div>
         <div class="overflow-x-auto">
             <table class="w-full text-left text-sm">
                 <thead class="bg-slate-50 text-slate-600"><tr><th class="px-5 py-3 font-medium">Guru</th><th class="px-5 py-3 font-medium">Mata pelajaran</th><th class="px-5 py-3 font-medium">Kelas</th>@can('master.manage')<th class="px-5 py-3 font-medium">Aksi</th>@endcan</tr></thead>
                 <tbody>
                     @forelse($assignments as $assignment)
-                        <tr class="border-t"><td class="px-5 py-3 font-medium">{{ $assignment->teacher->name }}</td><td class="px-5 py-3">{{ $assignment->subject->name }}</td><td class="px-5 py-3">{{ $assignment->schoolClass->name }}</td>@can('master.manage')<td class="px-5 py-3"><form method="POST" action="{{ route('master-data.assignments.destroy', $assignment) }}" onsubmit="return confirm('Hapus penugasan ini? Nilai dan absensi yang sudah tercatat tetap tersimpan.')">@csrf @method('DELETE')<button class="text-xs font-medium text-red-700 hover:underline">Hapus penugasan</button></form></td>@endcan</tr>
+                        <tr class="border-t"><td class="px-5 py-3 font-medium">{{ $assignment->teacher->name }}</td><td class="px-5 py-3">{{ $assignment->subject->name }}</td><td class="px-5 py-3">{{ $assignment->schoolClass->name }}</td>@can('master.manage')<td class="px-5 py-3"><a href="{{ route('master-data.assignments.edit', $assignment) }}" class="text-xs font-semibold text-indigo-700 hover:underline">Kelola</a></td>@endcan</tr>
                     @empty
                         <tr><td colspan="{{ auth()->user()->can('master.manage') ? 4 : 3 }}" class="px-5 py-10 text-center text-slate-500">{{ $search !== '' ? 'Tidak ada penugasan yang cocok dengan pencarian.' : 'Belum ada penugasan untuk semester aktif.' }}</td></tr>
                     @endforelse
@@ -515,57 +424,6 @@
     </section>
     @endif
 
-    @if($section === 'orang-tua')
-    <section class="overflow-hidden rounded-xl border bg-white">
-        <h2 class="border-b px-5 py-4 font-semibold">Orang tua/wali <span class="text-sm font-normal text-slate-500">({{ $guardians->count() }})</span></h2>
-        <div class="divide-y">
-            @forelse($guardians as $guardian)
-                <div class="px-5 py-3 text-sm">
-                    <p class="font-medium">{{ $guardian->name }}</p>
-                    <p class="mt-1 text-xs text-slate-500">{{ $guardian->user?->username ? '@'.$guardian->user->username : 'Belum ada akun masuk' }} · {{ $guardian->user?->is_active ? 'Aktif' : 'Nonaktif' }}</p>
-                    <p class="mt-1 text-xs text-indigo-700">Anak: {{ $guardian->students->pluck('name')->join(', ') ?: 'Belum terhubung' }}</p>
-                    @can('master.manage')
-                        @if($guardian->user)
-                            <details class="mt-2"><summary class="cursor-pointer text-xs font-medium text-indigo-700">Ubah profil, akun, dan relasi anak</summary>
-                                <form method="POST" action="{{ route('master-data.guardians.update', $guardian) }}" class="mt-2 space-y-2">
-                                    @csrf @method('PUT')
-                                    <input name="name" value="{{ $guardian->name }}" required class="w-full rounded border px-2 py-1 text-xs" aria-label="Nama orang tua/wali">
-                                    <input name="username" value="{{ $guardian->user->username }}" required class="w-full rounded border px-2 py-1 text-xs" aria-label="Nama pengguna">
-                                    <input name="email" type="email" value="{{ $guardian->user->email }}" class="w-full rounded border px-2 py-1 text-xs" aria-label="Email">
-                                    <input name="phone" value="{{ $guardian->phone }}" class="w-full rounded border px-2 py-1 text-xs" aria-label="Nomor telepon">
-                                    <label class="block text-xs text-slate-600">Kata sandi baru (opsional)</label>
-                                    <input name="password" type="password" autocomplete="new-password" minlength="12" class="w-full rounded border px-2 py-1 text-xs" aria-label="Kata sandi baru">
-                                    <input name="password_confirmation" type="password" autocomplete="new-password" minlength="12" class="w-full rounded border px-2 py-1 text-xs" aria-label="Ulangi kata sandi baru">
-                                    <select name="is_active" class="w-full rounded border bg-white px-2 py-1 text-xs" aria-label="Status akun">
-                                        <option value="1" @selected($guardian->user->is_active)>Aktif</option><option value="0" @selected(! $guardian->user->is_active)>Nonaktif</option>
-                                    </select>
-                                    <label class="block text-xs font-medium">Hubungan dengan semua anak terpilih</label>
-                                    @php($relationship = $guardian->students->first()?->pivot?->relationship ?? 'wali')
-                                    <select name="relationship" required class="w-full rounded border bg-white px-2 py-1 text-xs">
-                                        @foreach(['ayah' => 'Ayah', 'ibu' => 'Ibu', 'wali' => 'Wali'] as $value => $label)<option value="{{ $value }}" @selected($relationship === $value)>{{ $label }}</option>@endforeach
-                                    </select>
-                                    <div class="max-h-36 space-y-1 overflow-y-auto rounded border p-2">
-                                        @foreach($allStudents as $child)
-                                            <label class="flex items-center gap-2 text-xs"><input type="checkbox" name="student_ids[]" value="{{ $child->id }}" @checked($guardian->students->contains('id', $child->id))> {{ $child->name }} · NIS {{ $child->nis }}</label>
-                                        @endforeach
-                                    </div>
-                                    @error('student_ids')<p class="text-xs text-red-700">{{ $message }}</p>@enderror
-                                    @error('password')<p class="text-xs text-red-700">{{ $message }}</p>@enderror
-                                    <button class="rounded bg-indigo-600 px-3 py-1 text-xs text-white">Simpan perubahan</button>
-                                </form>
-                            </details>
-                            <form method="POST" action="{{ route('master-data.guardians.destroy', $guardian) }}" class="mt-2" onsubmit="return confirm('Arsipkan akun ini? Relasi anak tetap tersimpan.')">
-                                @csrf @method('DELETE')<button class="text-xs text-red-700 underline">Arsipkan akun</button>
-                            </form>
-                        @endif
-                    @endcan
-                </div>
-            @empty
-                <p class="px-5 py-6 text-sm text-slate-500">{{ $search !== '' ? 'Tidak ada orang tua/wali yang cocok dengan pencarian.' : 'Belum ada akun orang tua/wali.' }}</p>
-            @endforelse
-        </div>
-    </section>
-    @endif
 </div>
 @endif
 @endsection
