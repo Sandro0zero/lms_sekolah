@@ -86,4 +86,29 @@ class SemesterController extends Controller
 
         return redirect()->route('semesters.index')->with('status', "Semester {$semester->label()} sekarang aktif.");
     }
+
+    public function update(Request $request, Semester $semester, AuditLogger $audit): RedirectResponse
+    {
+        $data = $request->validate([
+            'start_date' => ['required', 'date'],
+            'end_date' => ['required', 'date', 'after:start_date'],
+        ], ['end_date.after' => 'Tanggal selesai harus setelah tanggal mulai.']);
+
+        [$firstYear, $secondYear] = array_map('intval', explode('/', $semester->academic_year));
+        $startYear = (int) date('Y', strtotime($data['start_date']));
+        $endYear = (int) date('Y', strtotime($data['end_date']));
+        if ($secondYear !== $firstYear + 1
+            || $startYear < $firstYear || $startYear > $secondYear
+            || $endYear < $firstYear || $endYear > $secondYear) {
+            return back()->withErrors([
+                'semester_dates' => 'Tanggal semester harus berada di dalam tahun ajaran '.$semester->academic_year.'.',
+            ])->withInput();
+        }
+
+        $old = $semester->only(['start_date', 'end_date']);
+        $semester->update($data);
+        $audit->log('semester.dates_updated', $semester, $old, $semester->only(['start_date', 'end_date']));
+
+        return redirect()->route('semesters.index')->with('status', "Periode {$semester->label()} berhasil diperbarui.");
+    }
 }

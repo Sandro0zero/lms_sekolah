@@ -4,7 +4,7 @@
 
 @section('content')
 <div>
-    <h1 class="text-xl font-semibold">Semester</h1>
+    <h1 class="text-2xl font-bold tracking-tight text-slate-900">Semester</h1>
     <p class="mt-1 text-sm text-slate-600">Atur tahun ajaran dan semester yang menjadi dasar pencatatan nilai, kehadiran, serta KPI.</p>
 </div>
 
@@ -81,6 +81,20 @@
                         </td>
                         @if($canManage)
                             <td class="px-5 py-3">
+                                <details class="group">
+                                    <summary class="mb-2 cursor-pointer text-xs font-medium text-indigo-700 hover:text-indigo-900">Ubah periode</summary>
+                                    <form method="POST" action="{{ route('semesters.update', $semester) }}" class="flex min-w-72 flex-col gap-2" onsubmit="return confirm('Simpan perubahan periode untuk {{ $semester->label() }}?')">
+                                        @csrf
+                                        @method('PUT')
+                                        <label class="text-xs text-slate-600">Tanggal mulai
+                                            <input name="start_date" type="date" value="{{ $semester->start_date->format('Y-m-d') }}" required class="mt-1 w-full rounded border border-slate-300 px-2 py-1.5 text-xs">
+                                        </label>
+                                        <label class="text-xs text-slate-600">Tanggal selesai
+                                            <input name="end_date" type="date" value="{{ $semester->end_date->format('Y-m-d') }}" required class="mt-1 w-full rounded border border-slate-300 px-2 py-1.5 text-xs">
+                                        </label>
+                                        <button class="rounded bg-indigo-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-indigo-700">Simpan periode</button>
+                                    </form>
+                                </details>
                                 @unless($semester->is_active)
                                     <form method="POST" action="{{ route('semesters.activate', $semester) }}" onsubmit="return confirm('Aktifkan {{ $semester->label() }}? Semester aktif saat ini akan diganti.')">
                                         @csrf

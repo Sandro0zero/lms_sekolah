@@ -5,7 +5,7 @@
 @section('content')
 <div class="flex flex-wrap items-end justify-between gap-3">
     <div>
-        <h1 class="text-xl font-semibold">Beranda Admin</h1>
+        <h1 class="text-2xl font-bold tracking-tight text-slate-900">Beranda Admin</h1>
         <p class="mt-1 text-sm text-slate-600">Ringkasan data dan pekerjaan pengelolaan sekolah.</p>
     </div>
     @if($semester)
@@ -21,16 +21,16 @@
 @endif
 
 <section class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-    <a href="{{ route('master-data.index') }}" class="rounded-xl border bg-white p-4 hover:border-indigo-300">
+    <a href="{{ route('master-data.section', 'siswa') }}" class="rounded-xl border bg-white p-4 hover:border-indigo-300">
         <p class="text-sm text-slate-500">Siswa aktif</p><p class="mt-1 text-2xl font-semibold">{{ $stats['students'] }}</p>
     </a>
-    <a href="{{ route('master-data.index') }}" class="rounded-xl border bg-white p-4 hover:border-indigo-300">
+    <a href="{{ route('master-data.section', 'guru') }}" class="rounded-xl border bg-white p-4 hover:border-indigo-300">
         <p class="text-sm text-slate-500">Guru aktif</p><p class="mt-1 text-2xl font-semibold">{{ $stats['teachers'] }}</p>
     </a>
-    <a href="{{ route('master-data.index') }}" class="rounded-xl border bg-white p-4 hover:border-indigo-300">
+    <a href="{{ route('master-data.section', 'orang-tua') }}" class="rounded-xl border bg-white p-4 hover:border-indigo-300">
         <p class="text-sm text-slate-500">Orang tua/wali aktif</p><p class="mt-1 text-2xl font-semibold">{{ $stats['guardians'] }}</p>
     </a>
-    <a href="{{ route('master-data.index') }}" class="rounded-xl border bg-white p-4 hover:border-indigo-300">
+    <a href="{{ route('master-data.section', 'kelas') }}" class="rounded-xl border bg-white p-4 hover:border-indigo-300">
         <p class="text-sm text-slate-500">Kelas{{ $semester ? ' tahun ajaran aktif' : '' }}</p><p class="mt-1 text-2xl font-semibold">{{ $stats['classes'] }}</p>
     </a>
 </section>
@@ -46,10 +46,10 @@
                 <a href="{{ route('class-roster.index') }}" class="flex items-center justify-between gap-3 py-3 text-sm hover:text-indigo-700">
                     <span>Siswa aktif belum ditempatkan di kelas</span><span class="font-semibold {{ $stats['unplaced_students'] ? 'text-amber-700' : 'text-green-700' }}">{{ $stats['unplaced_students'] }}</span>
                 </a>
-                <a href="{{ route('master-data.index') }}" class="flex items-center justify-between gap-3 py-3 text-sm hover:text-indigo-700">
+                <a href="{{ route('master-data.section', 'kelas') }}" class="flex items-center justify-between gap-3 py-3 text-sm hover:text-indigo-700">
                     <span>Kelas belum memiliki wali kelas</span><span class="font-semibold {{ $stats['classes_without_homeroom'] ? 'text-amber-700' : 'text-green-700' }}">{{ $stats['classes_without_homeroom'] }}</span>
                 </a>
-                <a href="{{ route('master-data.index') }}" class="flex items-center justify-between gap-3 py-3 text-sm hover:text-indigo-700">
+                <a href="{{ route('master-data.section', 'penugasan') }}" class="flex items-center justify-between gap-3 py-3 text-sm hover:text-indigo-700">
                     <span>Kelas belum memiliki penugasan mapel</span><span class="font-semibold {{ $stats['classes_without_assignments'] ? 'text-amber-700' : 'text-green-700' }}">{{ $stats['classes_without_assignments'] }}</span>
                 </a>
                 <a href="{{ route('kpi.index') }}" class="flex items-center justify-between gap-3 py-3 text-sm hover:text-indigo-700">
@@ -81,7 +81,7 @@
     <section class="overflow-hidden rounded-xl border bg-white">
         <div class="flex items-center justify-between border-b px-5 py-4">
             <div><h2 class="font-semibold">Kelas tahun ajaran aktif</h2><p class="mt-1 text-xs text-slate-500">Maksimal 8 kelas ditampilkan.</p></div>
-            <a href="{{ route('master-data.index') }}" class="text-sm text-indigo-700 hover:underline">Kelola semua kelas</a>
+            <a href="{{ route('master-data.section', 'kelas') }}" class="text-sm text-indigo-700 hover:underline">Kelola semua kelas</a>
         </div>
         <div class="overflow-x-auto">
             <table class="w-full text-left text-sm">

@@ -42,6 +42,7 @@ Route::middleware(['auth', 'permission:dashboard.view'])->group(function () {
 
     // Admin dan kepala sekolah
     Route::get('/data-master', [MasterDataController::class, 'index'])->middleware('permission:master.view')->name('master-data.index');
+    Route::get('/data-master/{section}', [MasterDataController::class, 'index'])->whereIn('section', ['kelas', 'siswa', 'guru', 'mapel', 'orang-tua', 'penugasan'])->middleware('permission:master.view')->name('master-data.section');
     Route::get('/riwayat-perubahan', [AuditLogController::class, 'index'])->middleware('permission:audit.view')->name('audit.index');
     Route::get('/wali-kelas', [ClassRosterController::class, 'index'])->middleware('permission:master.view')->name('class-roster.index');
     Route::post('/wali-kelas/siswa', [ClassRosterController::class, 'store'])->middleware('permission:master.manage')->name('class-roster.store');
@@ -81,6 +82,7 @@ Route::middleware(['auth', 'permission:dashboard.view'])->group(function () {
 
     Route::get('/semester', [SemesterController::class, 'index'])->middleware('permission:master.view')->name('semesters.index');
     Route::post('/semester', [SemesterController::class, 'store'])->middleware('permission:master.manage')->name('semesters.store');
+    Route::put('/semester/{semester}', [SemesterController::class, 'update'])->middleware('permission:master.manage')->name('semesters.update');
     Route::post('/semester/{semester}/aktif', [SemesterController::class, 'activate'])->middleware('permission:master.manage')->name('semesters.activate');
 
     Route::get('/kpi', [KpiController::class, 'index'])->middleware('permission:kpi.view')->name('kpi.index');

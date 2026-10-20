@@ -5,7 +5,7 @@
 @section('content')
 <div class="flex flex-wrap items-end justify-between gap-3">
     <div>
-        <h1 class="text-xl font-semibold">Nilai Siswa</h1>
+        <h1 class="text-2xl font-bold tracking-tight text-slate-900">Nilai Siswa</h1>
         <p class="mt-1 text-sm text-slate-600">Nilai mentah disimpan per ulangan. Nilai akhir dihitung otomatis dari bobot sekolah.</p>
     </div>
     <a href="{{ route('attendance.index') }}" class="rounded-lg border bg-white px-3 py-2 text-sm text-indigo-700 hover:bg-indigo-50">Buka absensi</a>

@@ -1,11 +1,11 @@
 @extends('layouts.app')
 
-@section('title', 'Data Master · LMS Sekolah')
+@section('title', ($section ? $sectionLabels[$section] : 'Data Master').' · LMS Sekolah')
 
 @section('content')
 <div>
-    <h1 class="text-xl font-semibold">Data Master</h1>
-    <p class="mt-1 text-sm text-slate-600">Kelola data dasar yang dipakai untuk nilai, kehadiran, dan laporan.</p>
+    <h1 class="text-2xl font-bold tracking-tight text-slate-900">{{ $section ? $sectionLabels[$section] : 'Data Master' }}</h1>
+    <p class="mt-1 text-sm text-slate-600">{{ $section ? 'Kelola '.strtolower($sectionLabels[$section]).'.' : 'Pilih jenis data yang ingin dikelola.' }}</p>
 </div>
 
 @if(! $semester)
@@ -14,8 +14,44 @@
     </div>
 @endif
 
+@if(! $section)
+    @php($masterLinks = [
+        ['key' => 'siswa', 'title' => 'Siswa', 'description' => 'Profil, akun masuk, status, dan daftar siswa.'],
+        ['key' => 'kelas', 'title' => 'Kelas', 'description' => 'Tingkat, tahun ajaran, dan wali kelas.'],
+        ['key' => 'guru', 'title' => 'Guru', 'description' => 'Profil, akun guru, dan status akun.'],
+        ['key' => 'mapel', 'title' => 'Mata Pelajaran', 'description' => 'Kode, nama, dan status mata pelajaran.'],
+        ['key' => 'orang-tua', 'title' => 'Orang Tua/Wali', 'description' => 'Akun wali dan hubungan dengan siswa.'],
+        ['key' => 'penugasan', 'title' => 'Penugasan Guru', 'description' => 'Guru, kelas, dan mata pelajaran semester aktif.'],
+    ])
+    <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        @foreach($masterLinks as $link)
+            <a href="{{ route('master-data.section', $link['key']) }}" class="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-300 hover:shadow-md">
+                <div class="flex items-start justify-between gap-4">
+                    <div><h2 class="font-semibold text-slate-900 group-hover:text-indigo-700">{{ $link['title'] }}</h2><p class="mt-2 text-sm leading-6 text-slate-500">{{ $link['description'] }}</p></div>
+                    <span class="grid size-9 shrink-0 place-items-center rounded-xl bg-indigo-50 text-lg font-semibold text-indigo-700 transition group-hover:bg-indigo-600 group-hover:text-white" aria-hidden="true">›</span>
+                </div>
+            </a>
+        @endforeach
+    </section>
+@else
+    <nav aria-label="Jenis data master" class="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+        <a href="{{ route('master-data.index') }}" class="shrink-0 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 hover:border-indigo-300 hover:text-indigo-700">Semua data</a>
+        @foreach($sectionLabels as $key => $label)
+            <a href="{{ route('master-data.section', $key) }}" @class(['shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition', $section === $key ? 'bg-indigo-600 text-white' : 'border border-slate-200 bg-white text-slate-600 hover:border-indigo-300 hover:text-indigo-700']) @if($section === $key) aria-current="page" @endif>{{ $label }}</a>
+        @endforeach
+    </nav>
+    @can('master.manage')
+        <div class="mb-5 flex items-center justify-between gap-4 rounded-xl border border-indigo-100 bg-indigo-50/70 px-4 py-3">
+            <div><p class="text-sm font-semibold text-indigo-950">Tambah {{ strtolower($sectionLabels[$section]) }}</p><p class="mt-0.5 text-xs text-indigo-800/80">Isi formulir berikut untuk membuat data baru.</p></div>
+            <a href="#form-tambah" class="shrink-0 rounded-lg bg-indigo-600 px-3 py-2 text-xs font-semibold text-white hover:bg-indigo-700">+ Tambah</a>
+        </div>
+    @endcan
+@endif
+
+@if($section)
 @can('master.manage')
-    <div class="grid gap-5 lg:grid-cols-3">
+    <div id="form-tambah" class="grid scroll-mt-36 gap-5 lg:grid-cols-2 xl:grid-cols-3">
+        @if($section === 'kelas')
         <section class="rounded-xl border bg-white p-5">
             <h2 class="font-semibold">Tambah kelas</h2>
             @if($academicYears->isEmpty())
@@ -52,7 +88,9 @@
                 </form>
             @endif
         </section>
+        @endif
 
+        @if($section === 'siswa')
         <section class="rounded-xl border bg-white p-5">
             <h2 class="font-semibold">Tambah siswa</h2>
             @if($classes->isEmpty())
@@ -113,7 +151,9 @@
                 </form>
             @endif
         </section>
+        @endif
 
+        @if($section === 'mapel')
         <section class="rounded-xl border bg-white p-5">
             <h2 class="font-semibold">Tambah mata pelajaran</h2>
             <form method="POST" action="{{ route('master-data.subjects.store') }}" class="mt-4 space-y-3">
@@ -131,7 +171,9 @@
                 <button class="w-full rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Simpan mata pelajaran</button>
             </form>
         </section>
+        @endif
 
+        @if($section === 'guru')
         <section class="rounded-xl border bg-white p-5">
             <h2 class="font-semibold">Buat akun guru</h2>
             <p class="mt-1 text-xs text-slate-500">Akun dapat langsung digunakan untuk masuk. Kata sandi minimal 12 karakter.</p>
@@ -178,7 +220,9 @@
                 <button class="w-full rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white hover:bg-indigo-700">Buat akun guru</button>
             </form>
         </section>
+        @endif
 
+        @if($section === 'orang-tua')
         <section class="rounded-xl border bg-white p-5">
             <h2 class="font-semibold">Buat akun orang tua/wali</h2>
             <p class="mt-1 text-xs text-slate-500">Satu akun dapat terhubung ke beberapa anak. Kata sandi minimal 12 karakter.</p>
@@ -210,7 +254,9 @@
                 </form>
             @endif
         </section>
+        @endif
 
+        @if($section === 'penugasan')
         <section class="rounded-xl border bg-white p-5">
             <h2 class="font-semibold">Tugaskan guru</h2>
             <p class="mt-1 text-xs text-slate-500">Penugasan membatasi kelas dan mata pelajaran yang muncul bagi guru.</p>
@@ -249,10 +295,12 @@
                 </form>
             @endif
         </section>
+        @endif
     </div>
 @endcan
 
-<div class="grid gap-5 lg:grid-cols-2 xl:grid-cols-4">
+<div class="grid gap-5 {{ $section === 'siswa' ? 'lg:grid-cols-2 xl:grid-cols-3' : 'lg:grid-cols-2' }}">
+    @if($section === 'kelas')
     <section class="overflow-hidden rounded-xl border bg-white">
         <h2 class="border-b px-5 py-4 font-semibold">Kelas <span class="text-sm font-normal text-slate-500">({{ $classes->count() }})</span></h2>
         <div class="divide-y">
@@ -287,7 +335,9 @@
             @endforelse
         </div>
     </section>
+    @endif
 
+    @if($section === 'siswa')
     <section class="overflow-hidden rounded-xl border bg-white">
         <h2 class="border-b px-5 py-4 font-semibold">Siswa <span class="text-sm font-normal text-slate-500">({{ $students->total() }})</span></h2>
         <div class="divide-y">
@@ -341,7 +391,9 @@
         </div>
         @if($students->hasPages())<div class="border-t px-5 py-3">{{ $students->links() }}</div>@endif
     </section>
+    @endif
 
+    @if($section === 'mapel')
     <section class="overflow-hidden rounded-xl border bg-white">
         <h2 class="border-b px-5 py-4 font-semibold">Mata pelajaran <span class="text-sm font-normal text-slate-500">({{ $subjects->count() }})</span></h2>
         <div class="divide-y">
@@ -367,7 +419,9 @@
             @endforelse
         </div>
     </section>
+    @endif
 
+    @if($section === 'guru')
     <section class="overflow-hidden rounded-xl border bg-white">
         <h2 class="border-b px-5 py-4 font-semibold">Guru <span class="text-sm font-normal text-slate-500">({{ $teacherProfiles->count() }})</span></h2>
         <div class="divide-y">
@@ -418,7 +472,25 @@
             @endforelse
         </div>
     </section>
+    @elseif($section === 'penugasan')
+    <section class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm lg:col-span-2">
+        <div class="border-b px-5 py-4"><h2 class="font-semibold text-slate-900">Penugasan semester aktif</h2><p class="mt-1 text-sm text-slate-500">{{ $semester ? $semester->label() : 'Belum ada semester aktif' }} · {{ $assignments->count() }} penugasan</p></div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+                <thead class="bg-slate-50 text-slate-600"><tr><th class="px-5 py-3 font-medium">Guru</th><th class="px-5 py-3 font-medium">Mata pelajaran</th><th class="px-5 py-3 font-medium">Kelas</th>@can('master.manage')<th class="px-5 py-3 font-medium">Aksi</th>@endcan</tr></thead>
+                <tbody>
+                    @forelse($assignments as $assignment)
+                        <tr class="border-t"><td class="px-5 py-3 font-medium">{{ $assignment->teacher->name }}</td><td class="px-5 py-3">{{ $assignment->subject->name }}</td><td class="px-5 py-3">{{ $assignment->schoolClass->name }}</td>@can('master.manage')<td class="px-5 py-3"><form method="POST" action="{{ route('master-data.assignments.destroy', $assignment) }}" onsubmit="return confirm('Hapus penugasan ini? Nilai dan absensi yang sudah tercatat tetap tersimpan.')">@csrf @method('DELETE')<button class="text-xs font-medium text-red-700 hover:underline">Hapus penugasan</button></form></td>@endcan</tr>
+                    @empty
+                        <tr><td colspan="{{ auth()->user()->can('master.manage') ? 4 : 3 }}" class="px-5 py-10 text-center text-slate-500">Belum ada penugasan untuk semester aktif.</td></tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+    </section>
+    @endif
 
+    @if($section === 'orang-tua')
     <section class="overflow-hidden rounded-xl border bg-white">
         <h2 class="border-b px-5 py-4 font-semibold">Orang tua/wali <span class="text-sm font-normal text-slate-500">({{ $guardians->count() }})</span></h2>
         <div class="divide-y">
@@ -468,5 +540,7 @@
             @endforelse
         </div>
     </section>
+    @endif
 </div>
+@endif
 @endsection

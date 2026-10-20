@@ -21,11 +21,22 @@ use Illuminate\View\View;
 
 class MasterDataController extends Controller
 {
-    public function index(): View
+    public function index(?string $section = null): View
     {
+        $sectionLabels = [
+            'kelas' => 'Data Kelas',
+            'siswa' => 'Data Siswa',
+            'guru' => 'Data Guru',
+            'mapel' => 'Mata Pelajaran',
+            'orang-tua' => 'Orang Tua/Wali',
+            'penugasan' => 'Penugasan Guru',
+        ];
+        abort_if($section !== null && ! array_key_exists($section, $sectionLabels), 404);
         $semester = Semester::active();
 
         return view('master-data.index', [
+            'section' => $section,
+            'sectionLabels' => $sectionLabels,
             'semester' => $semester,
             'academicYears' => Semester::query()->select('academic_year')->distinct()->orderByDesc('academic_year')->pluck('academic_year'),
             'classes' => SchoolClass::with('homeroomTeacher')->withCount(['enrollments', 'assignments'])->orderByDesc('academic_year')->orderBy('name')->get(),

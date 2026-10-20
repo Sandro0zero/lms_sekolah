@@ -4,7 +4,7 @@
 
 @section('content')
 <div>
-    <h1 class="text-xl font-semibold">Penempatan Siswa · Wali Kelas</h1>
+    <h1 class="text-2xl font-bold tracking-tight text-slate-900">Penempatan Siswa · Wali Kelas</h1>
     <p class="mt-1 text-sm text-slate-600">Pilih guru wali kelas, lalu tambahkan siswa yang sudah terdaftar ke kelasnya untuk tahun ajaran {{ $semester->academic_year }}.</p>
 </div>
 

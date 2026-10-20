@@ -15,7 +15,7 @@
 
 <div class="flex flex-wrap items-end justify-between gap-4">
     <div>
-        <h1 class="text-xl font-semibold">KPI Siswa</h1>
+        <h1 class="text-2xl font-bold tracking-tight text-slate-900">KPI Siswa</h1>
         <p class="text-sm text-slate-500">Semester {{ $semester->label() }}</p>
     </div>
 

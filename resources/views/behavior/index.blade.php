@@ -4,7 +4,7 @@
 
 @section('content')
 <div>
-    <h1 class="text-xl font-semibold">Penilaian Perilaku</h1>
+    <h1 class="text-2xl font-bold tracking-tight text-slate-900">Penilaian Perilaku</h1>
     <p class="mt-1 text-sm text-slate-600">Nilai aspek perilaku siswa untuk melengkapi komponen KPI semester.</p>
 </div>
 

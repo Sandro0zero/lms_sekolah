@@ -4,7 +4,7 @@
 
 @section('content')
 <div>
-    <h1 class="text-xl font-semibold">Pengaturan Akademik dan KPI</h1>
+    <h1 class="text-2xl font-bold tracking-tight text-slate-900">Pengaturan Akademik dan KPI</h1>
     <p class="mt-1 text-sm text-slate-600">Perubahan pengaturan berlaku pada perhitungan berikutnya. KPI yang sudah dipublikasikan menyimpan bobotnya sendiri.</p>
 </div>
 
